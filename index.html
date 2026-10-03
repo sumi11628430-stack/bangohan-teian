@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>毎日の晩御飯の提案</title>
+<meta name="description" content="今夜の晩ごはんを、残っている材料・ジャンル・気分から選べます。ルーレットや献立スロット、二択でも決められます。">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="top">
+  <button type="button" id="back" class="back" hidden>← 戻る</button>
+  <h1>毎日の晩御飯の提案</h1>
+  <p class="lead">今夜のごはん、30秒で決めよう</p>
+</header>
+
+<main>
+
+  <!-- 今日 -->
+  <section id="view-home" class="view is-active" aria-label="今日の一品">
+    <div class="panel panel-today">
+      <p id="today-label" class="eyebrow"></p>
+      <div id="today-dish"></div>
+      <div id="today-with" class="with"></div>
+    </div>
+
+    <h2 class="h2">迷ったら</h2>
+    <div class="quick">
+      <button type="button" class="quick-btn" data-go="play" data-game="roulette"><b>ルーレット</b><span>1品をおまかせで</span></button>
+      <button type="button" class="quick-btn" data-go="play" data-game="slot"><b>献立スロット</b><span>主菜・副菜・汁物を一度に</span></button>
+      <button type="button" class="quick-btn" data-go="play" data-game="duel"><b>二択で決める</b><span>10問答えると決まる</span></button>
+      <button type="button" class="quick-btn" data-go="search"><b>条件でさがす</b><span>材料・ジャンル・目的から</span></button>
+      <button type="button" class="quick-btn" data-go="fortune"><b>星座で決める</b><span>今日のラッキー晩御飯</span></button>
+    </div>
+
+    <div id="recent-box" class="panel" hidden>
+      <h2 class="h2 h2-in">最近決めた料理</h2>
+      <p class="note">決めてから3日間は、おまかせの候補から外します。</p>
+      <ul id="recent-list" class="recent"></ul>
+      <button type="button" id="recent-clear" class="link">記録を消す</button>
+    </div>
+  </section>
+
+  <!-- さがす -->
+  <section id="view-search" class="view" aria-label="条件でさがす">
+    <div class="resultbar">
+      <span id="result-count" class="count"></span>
+      <button type="button" id="filter-clear" class="link">条件を消す</button>
+      <button type="button" id="jump-results" class="btn btn-small">一覧を見る</button>
+      <button type="button" id="filter-roulette" class="btn btn-primary btn-small">この中からルーレット</button>
+    </div>
+    <div class="panel filters">
+      <details class="fgroup" open>
+        <summary>残ってる材料から</summary>
+        <p class="note">選んだ材料を多く使う料理から順に並びます。</p>
+        <div id="f-mats"></div>
+      </details>
+      <details class="fgroup">
+        <summary>メインの材料から</summary>
+        <div id="f-zairyo" class="picks"></div>
+      </details>
+      <details class="fgroup">
+        <summary>ジャンルから</summary>
+        <div id="f-genre" class="picks"></div>
+      </details>
+      <details class="fgroup">
+        <summary>目的から</summary>
+        <p class="note">複数選ぶと、すべてに当てはまる料理だけになります。札は目安です。</p>
+        <div id="f-purpose" class="picks"></div>
+      </details>
+      <details class="fgroup">
+        <summary>季節から</summary>
+        <div id="f-season" class="picks"></div>
+      </details>
+      <details class="fgroup">
+        <summary>料理の種類から</summary>
+        <div id="f-kubun" class="picks"></div>
+      </details>
+    </div>
+
+    <div class="result-wrap">
+      <h2 id="result-head" class="h2">当てはまる料理</h2>
+      <ul id="result-list" class="results"></ul>
+      <button type="button" id="result-more" class="btn btn-wide" hidden>もっと見る</button>
+    </div>
+  </section>
+
+  <!-- あそぶ -->
+  <section id="view-play" class="view" aria-label="おまかせで決める">
+    <div class="seg" role="tablist">
+      <button type="button" role="tab" data-game="roulette" aria-selected="true">ルーレット</button>
+      <button type="button" role="tab" data-game="slot" aria-selected="false">献立スロット</button>
+      <button type="button" role="tab" data-game="duel" aria-selected="false">二択</button>
+    </div>
+    <label class="check"><input type="checkbox" id="teiban-only" checked> 定番の料理だけで回す</label>
+    <label class="check"><input type="checkbox" id="photo-only" checked> 写真・画像のある料理だけで回す</label>
+
+    <div id="game-roulette" class="game is-active">
+      <div class="panel center">
+        <p id="roulette-pool" class="note"></p>
+        <div class="wheel-stage">
+          <div class="wheel-wrap">
+            <div class="wheel-bulbs" aria-hidden="true"></div>
+            <span class="wheel-pin" aria-hidden="true"></span>
+            <canvas id="wheel" width="640" height="640" aria-hidden="true"></canvas>
+            <span class="wheel-hub" aria-hidden="true"></span>
+          </div>
+        </div>
+        <div id="roulette-window" class="window window-result" aria-live="polite">？</div>
+        <button type="button" id="roulette-go" class="btn btn-primary btn-big">回す</button>
+      </div>
+      <div id="roulette-result" class="result-slot" data-empty="回すと、ここに料理と写真が出ます"></div>
+    </div>
+
+    <div id="game-slot" class="game">
+      <div class="panel center machine">
+        <div class="marquee"><span>今夜の献立スロット</span></div>
+        <div class="reels">
+          <div class="reel"><span class="reel-label">主菜</span><div class="reelwin" data-reel="0"><div class="strip"><div class="cell"><span class="cell-q">？</span></div></div></div><button type="button" class="hold" data-hold="0" aria-pressed="false">固定</button></div>
+          <div class="reel"><span class="reel-label">副菜</span><div class="reelwin" data-reel="1"><div class="strip"><div class="cell"><span class="cell-q">？</span></div></div></div><button type="button" class="hold" data-hold="1" aria-pressed="false">固定</button></div>
+          <div class="reel"><span class="reel-label">汁物</span><div class="reelwin" data-reel="2"><div class="strip"><div class="cell"><span class="cell-q">？</span></div></div></div><button type="button" class="hold" data-hold="2" aria-pressed="false">固定</button></div>
+        </div>
+        <button type="button" id="slot-go" class="btn btn-primary btn-big">回す</button>
+        <p class="note">気に入った列は「固定」を押すと、次に回しても変わりません。</p>
+      </div>
+      <div id="slot-result" class="result-slot" data-empty="回すと、ここに今夜の献立が出ます"></div>
+    </div>
+
+    <div id="game-duel" class="game">
+      <div class="panel center arena">
+        <p id="duel-progress" class="eyebrow">どっちが食べたい？</p>
+        <div id="duel-dots" class="dots" aria-hidden="true"></div>
+        <p id="duel-note" class="note">10問答えると、今夜の1品が決まります。</p>
+        <div id="duel-area" class="duel"></div>
+        <button type="button" id="duel-go" class="btn btn-primary btn-big">はじめる</button>
+      </div>
+      <div id="duel-result" class="result-slot" data-empty="10問答えると、ここに今夜の1品が出ます"></div>
+    </div>
+  </section>
+
+  <!-- 占い -->
+  <section id="view-fortune" class="view" aria-label="星座で決める">
+    <div class="panel panel-night">
+      <p class="eyebrow">星座別・今日のラッキー晩御飯</p>
+      <p class="note">星座を選ぶと、今日のラッキーカラーと、その色の一品が出ます。</p>
+      <div id="signs" class="signs"></div>
+    </div>
+    <div id="fortune-result" class="result-slot" data-empty="星座を選ぶと、ここに今日のラッキー晩御飯が出ます"></div>
+  </section>
+
+</main>
+
+<footer class="foot">
+  <p>料理の名前は、食品メーカー・料理メディア・公的機関などの公開ページから集めました。作り方は載せていません。「作り方を探す」から検索できます。</p>
+  <p>がっつり・野菜たっぷりなどの札は目安です。</p>
+  <p>「AI」の印がある画像は、料理のイメージをAIで作成したものです。実際の料理とは見た目が異なる場合があります。</p>
+  <details id="credits-box" class="credits" hidden>
+    <summary>写真の出典<span id="credits-count"></span></summary>
+    <p>写真は Wikimedia Commons で公開されているものを、各写真のライセンスに従って出典つきで掲載しています。料理名を押すと、写真の公開ページ（作者・ライセンスの原文）が開きます。</p>
+    <ul id="credits"></ul>
+  </details>
+</footer>
+
+<nav class="tabbar" aria-label="メニュー">
+  <button type="button" data-view="home" aria-current="page"><span class="ti">今日</span></button>
+  <button type="button" data-view="search" aria-current="false"><span class="ti">さがす</span></button>
+  <button type="button" data-view="play" aria-current="false"><span class="ti">おまかせ</span></button>
+  <button type="button" data-view="fortune" aria-current="false"><span class="ti">占い</span></button>
+</nav>
+
+<div id="modal" class="modal" hidden>
+  <div class="modal-back" data-close></div>
+  <div class="modal-box" role="dialog" aria-modal="true">
+    <button type="button" class="modal-x" data-close aria-label="閉じる">×</button>
+    <div id="modal-body"></div>
+  </div>
+</div>
+<div id="toast" class="toast" hidden></div>
+
+<script src="data.js"></script>
+<script src="photos.js"></script>
+<script src="genphotos.js"></script>
+<script src="art.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

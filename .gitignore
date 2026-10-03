@@ -1,0 +1,13 @@
+# GPTが作った元の大きな絵（6品まとめ・切り分け前・約600MB）。サイトでは使わず、重いのでGitには入れない
+gen_src/
+
+# 作業用（写真の目視確認ページ・一時ファイル）
+check.html
+__pycache__/
+*.pyc
+Thumbs.db
+desktop.ini
+
+# 絵の生成ログ（手元のフォルダ名などが入るので公開しない）と、確認用の一覧画像
+art_src/*.txt
+art_src/_*.png
