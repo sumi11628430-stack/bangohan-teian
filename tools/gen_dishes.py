@@ -3,6 +3,8 @@
   python tools/gen_dishes.py teiban      … 定番の料理で、写真のないものだけ
   python tools/gen_dishes.py all [上限]   … 写真のない料理すべて（上限＝今回作る枚数。省略で全部）
   python tools/gen_dishes.py crop        … 生成はせず、できている絵の切り分けと一覧の作り直しだけ
+  python tools/gen_dishes.py redo        … 描き直し。tools/gen_redo.json（[料理名, 絵の説明] の並び。6の倍数）のとおりに作る。
+                                            料理名の末尾が「 (2)」のものは別案で、tools/gen_pick.json に料理名を書いたときだけ採用する
 出力:
   gen_src/sheet_<番号>.png … GPTが作った6品まとめの絵（すでにあるものは作り直さない）
   gen_src/sheets.json      … どの絵に、どの料理が、どの順で入っているか
@@ -82,6 +84,18 @@ def plan(mode, limit):
     return sheets
 
 
+def plan_redo():
+    """描き直す料理を6品ずつの組にして redo.json に書く"""
+    items = load_json(os.path.join(HERE, "gen_redo.json"), [])
+    redo = []
+    for i in range(0, len(items), PER):
+        group = items[i:i + PER]
+        redo.append({"id": f"redo_{len(redo) + 1:04d}", "names": [n for n, _ in group],
+                     "lines": [f'{k + 1}. {n.replace(" (2)", "")} — {desc}' for k, (n, desc) in enumerate(group)]})
+    json.dump(redo, open(os.path.join(SRC, "redo.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+    return redo
+
+
 def runs(profile, least):
     """絵のある区間（始まり, 終わり）を返す。短すぎるものは捨てる"""
     out, start = [], None
@@ -128,21 +142,41 @@ def crop_all(sheets):
     """できている絵をすべて切り分け、genphotos.js と確認用の一覧を作り直す"""
     os.makedirs(OUT, exist_ok=True)
     reject = set(load_json(os.path.join(HERE, "gen_reject.json"), []))  # 目で見て外した料理名
+    redo = load_json(os.path.join(SRC, "redo.json"), [])            # 描き直した絵（前の絵より後に処理して上書きする）
+    pick = set(load_json(os.path.join(HERE, "gen_pick.json"), []))  # 別案「 (2)」のほうを使う料理名
     gen, checked = {}, []
-    for s in sheets:
+    for s in sheets + redo:
         path = os.path.join(SRC, s["id"] + ".png")
         if not os.path.exists(path):
             continue
         tiles = tiles_of(Image.open(path).convert("RGB"))
-        for name, tile in zip(s["names"], tiles):
+        for label, tile in zip(s["names"], tiles):
+            alt = label.endswith(" (2)")
+            name = label[:-4] if alt else label
+            if alt and name not in pick:
+                continue                                 # 別案は、選んだときだけ使う
             if name in reject:
                 old = os.path.join(OUT, file_of(name))  # 前に切り分けた分が残っていれば消す
                 if os.path.exists(old):
                     os.remove(old)
+                gen.pop(name, None)
                 continue
             tile.save(os.path.join(OUT, file_of(name)), "WEBP", quality=82, method=6)
             gen[name] = file_of(name)
         checked.append((s, tiles))
+    # 社長が用意した画像（gen_user/料理名.webp など）があれば、それを優先して使う（中央を正方形に切って使う）
+    user_dir = os.path.join(SITE, "gen_user")
+    if os.path.isdir(user_dir):
+        for f in sorted(os.listdir(user_dir)):
+            name, ext = os.path.splitext(f)
+            if ext.lower() not in (".webp", ".png", ".jpg", ".jpeg"):
+                continue
+            img = Image.open(os.path.join(user_dir, f)).convert("RGB")
+            side = min(img.size)
+            left, top = (img.width - side) // 2, (img.height - side) // 2
+            img.crop((left, top, left + side, top + side)).resize((TILE, TILE), Image.LANCZOS).save(
+                os.path.join(OUT, file_of(name)), "WEBP", quality=85, method=6)
+            gen[name] = file_of(name)
     with open(os.path.join(SITE, "genphotos.js"), "w", encoding="utf-8") as f:
         f.write("window.DATA.gen = " + json.dumps(gen, ensure_ascii=False) + ";\n")
     # 確認用の一覧：1枚に24品（4組）。各画像の下に番号と料理名を入れる
@@ -169,9 +203,9 @@ if __name__ == "__main__":
     os.makedirs(SRC, exist_ok=True)
     mode = sys.argv[1] if len(sys.argv) > 1 else "teiban"
     limit = int(sys.argv[2]) if len(sys.argv) > 2 else 0
-    sheets = load_json(os.path.join(SRC, "sheets.json"), []) if mode == "crop" else plan(mode, limit)
+    sheets = load_json(os.path.join(SRC, "sheets.json"), []) if mode in ("crop", "redo") else plan(mode, limit)
     if mode != "crop":
-        todo = [s for s in sheets if not os.path.exists(os.path.join(SRC, s["id"] + ".png"))]
+        todo = [s for s in (plan_redo() if mode == "redo" else sheets) if not os.path.exists(os.path.join(SRC, s["id"] + ".png"))]
         print(f"作る絵 {len(todo)} 枚（料理 {len(todo) * PER} 品）", flush=True)
         with ThreadPoolExecutor(max_workers=3) as ex:
             for name, result in ex.map(lambda s: gpt_run.run(SRC, s["id"], SIZE, PROMPT.format(lines="\n".join(s["lines"])), timeout=900), todo):
