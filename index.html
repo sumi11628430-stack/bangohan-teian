@@ -13,6 +13,20 @@
   <button type="button" id="back" class="back" hidden>← 戻る</button>
   <h1>毎日の晩御飯の提案</h1>
   <p class="lead">今夜のごはん、30秒で決めよう</p>
+  <div class="modebar" role="group" aria-label="今夜はどうする？">
+    <span class="modebar-title">今夜はどうする？</span>
+    <button type="button" data-mode="any" aria-pressed="true">まだ決めていない</button>
+    <button type="button" data-mode="cook" aria-pressed="false">家で作る</button>
+    <button type="button" data-mode="buy" aria-pressed="false">買って帰る</button>
+    <button type="button" data-mode="out" aria-pressed="false">外で食べる</button>
+  </div>
+  <div class="placebar only-buy" role="group" aria-label="どこで買う？">
+    <span class="modebar-title">どこで買う？</span>
+    <button type="button" data-place="0" aria-pressed="true">どこでも</button>
+    <button type="button" data-place="1" aria-pressed="false">コンビニ</button>
+    <button type="button" data-place="2" aria-pressed="false">スーパー</button>
+    <button type="button" data-place="4" aria-pressed="false">お弁当・持ち帰りの店</button>
+  </div>
 </header>
 
 <main>
@@ -28,7 +42,7 @@
     <h2 class="h2">迷ったら</h2>
     <div class="quick">
       <button type="button" class="quick-btn" data-go="play" data-game="roulette"><b>ルーレット</b><span>1品をおまかせで</span></button>
-      <button type="button" class="quick-btn" data-go="play" data-game="slot"><b>献立スロット</b><span>主菜・副菜・汁物を一度に</span></button>
+      <button type="button" class="quick-btn not-out" data-go="play" data-game="slot"><b>献立スロット</b><span>主菜・副菜・汁物を一度に</span></button>
       <button type="button" class="quick-btn" data-go="play" data-game="duel"><b>二択で決める</b><span>10問答えると決まる</span></button>
       <button type="button" class="quick-btn" data-go="search"><b>条件でさがす</b><span>材料・ジャンル・目的から</span></button>
       <button type="button" class="quick-btn" data-go="fortune"><b>星座で決める</b><span>今日のラッキー晩御飯</span></button>
@@ -51,7 +65,12 @@
       <button type="button" id="filter-roulette" class="btn btn-primary btn-small">この中からルーレット</button>
     </div>
     <div class="panel filters">
-      <details class="fgroup" open>
+      <label class="qbox"><span>ことばで探す</span><input type="search" id="q" placeholder="例：カレー、なす、鶏肉" autocomplete="off"></label>
+      <details class="fgroup only-out" open>
+        <summary>お店の種類から</summary>
+        <div id="f-shop" class="picks"></div>
+      </details>
+      <details class="fgroup only-cook" open>
         <summary>残ってる材料から</summary>
         <p class="note">選んだ材料を多く使う料理から順に並びます。</p>
         <div id="f-mats"></div>
@@ -90,7 +109,7 @@
   <section id="view-play" class="view" aria-label="おまかせで決める">
     <div class="seg" role="tablist">
       <button type="button" role="tab" data-game="roulette" aria-selected="true">ルーレット</button>
-      <button type="button" role="tab" data-game="slot" aria-selected="false">献立スロット</button>
+      <button type="button" role="tab" class="not-out" data-game="slot" aria-selected="false">献立スロット</button>
       <button type="button" role="tab" data-game="duel" aria-selected="false">二択</button>
     </div>
     <label class="check"><input type="checkbox" id="teiban-only" checked> 定番の料理だけで回す</label>
@@ -121,6 +140,7 @@
           <div class="reel"><span class="reel-label">副菜</span><div class="reelwin" data-reel="1"><div class="strip"><div class="cell"><span class="cell-q">？</span></div></div></div><button type="button" class="hold" data-hold="1" aria-pressed="false">固定</button></div>
           <div class="reel"><span class="reel-label">汁物</span><div class="reelwin" data-reel="2"><div class="strip"><div class="cell"><span class="cell-q">？</span></div></div></div><button type="button" class="hold" data-hold="2" aria-pressed="false">固定</button></div>
         </div>
+        <p class="note" id="slot-none" hidden></p>
         <button type="button" id="slot-go" class="btn btn-primary btn-big">回す</button>
         <p class="note">気に入った列は「固定」を押すと、次に回しても変わりません。</p>
       </div>
@@ -154,6 +174,7 @@
 <footer class="foot">
   <p>料理の名前は、食品メーカー・料理メディア・公的機関などの公開ページから集めました。作り方は載せていません。「作り方を探す」から検索できます。</p>
   <p>がっつり・野菜たっぷりなどの札は目安です。</p>
+  <p>「お惣菜で買える」「外食で食べられる」の印や、お店の種類も目安です。売り場やお店によっては扱いがない場合があります。</p>
   <p>「AI」の印がある画像は、料理のイメージをAIで作成したものです。実際の料理とは見た目が異なる場合があります。</p>
   <details id="credits-box" class="credits" hidden>
     <summary>写真の出典<span id="credits-count"></span></summary>

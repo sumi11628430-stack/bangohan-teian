@@ -144,15 +144,37 @@ def crop_all(sheets):
     reject = set(load_json(os.path.join(HERE, "gen_reject.json"), []))  # 目で見て外した料理名
     redo = load_json(os.path.join(SRC, "redo.json"), [])            # 描き直した絵（前の絵より後に処理して上書きする）
     pick = set(load_json(os.path.join(HERE, "gen_pick.json"), []))  # 別案「 (2)」のほうを使う料理名
-    gen, checked = {}, []
+    cell, label, per = 256, 44, 24
+    fnt = font(17)
+    for old in os.listdir(SRC):
+        if old.startswith("check_"):
+            os.remove(os.path.join(SRC, old))
+    gen, buf, state = {}, [], {"n": 0, "page": 0}
+
+    def flush():
+        """たまった分を、確認用の一覧1枚に書き出す（各画像の下に番号と料理名）"""
+        if not buf:
+            return
+        state["page"] += 1
+        sheet = Image.new("RGB", (cell * 6, (cell + label) * ((len(buf) + 5) // 6)), "white")
+        draw = ImageDraw.Draw(sheet)
+        for i, (no, name, thumb) in enumerate(buf):
+            x, y = cell * (i % 6), (cell + label) * (i // 6)
+            sheet.paste(thumb, (x, y))
+            text = f"{no} {name}"
+            draw.text((x + 4, y + cell + 2), text[:15], fill="black", font=fnt)
+            draw.text((x + 4, y + cell + 22), text[15:30], fill="black", font=fnt)
+        sheet.save(os.path.join(SRC, f"check_{state['page']:03d}.png"))
+        buf.clear()
+
     for s in sheets + redo:
         path = os.path.join(SRC, s["id"] + ".png")
         if not os.path.exists(path):
             continue
         tiles = tiles_of(Image.open(path).convert("RGB"))
-        for label, tile in zip(s["names"], tiles):
-            alt = label.endswith(" (2)")
-            name = label[:-4] if alt else label
+        for entry, tile in zip(s["names"], tiles):
+            alt = entry.endswith(" (2)")
+            name = entry[:-4] if alt else entry
             if alt and name not in pick:
                 continue                                 # 別案は、選んだときだけ使う
             if name in reject:
@@ -163,7 +185,12 @@ def crop_all(sheets):
                 continue
             tile.save(os.path.join(OUT, file_of(name)), "WEBP", quality=82, method=6)
             gen[name] = file_of(name)
-        checked.append((s, tiles))
+        for label_, tile in zip(s["names"], tiles):
+            state["n"] += 1
+            buf.append((state["n"], label_, tile.resize((cell, cell), Image.LANCZOS)))
+            if len(buf) == per:
+                flush()
+    flush()
     # 社長が用意した画像（gen_user/料理名.webp など）があれば、それを優先して使う（中央を正方形に切って使う）
     user_dir = os.path.join(SITE, "gen_user")
     if os.path.isdir(user_dir):
@@ -179,23 +206,6 @@ def crop_all(sheets):
             gen[name] = file_of(name)
     with open(os.path.join(SITE, "genphotos.js"), "w", encoding="utf-8") as f:
         f.write("window.DATA.gen = " + json.dumps(gen, ensure_ascii=False) + ";\n")
-    # 確認用の一覧：1枚に24品（4組）。各画像の下に番号と料理名を入れる
-    cell, label, per = 256, 44, 24
-    flat = [(s["id"], name, tile) for s, tiles in checked for name, tile in zip(s["names"], tiles)]
-    fnt = font(17)
-    for old in os.listdir(SRC):
-        if old.startswith("check_"):
-            os.remove(os.path.join(SRC, old))
-    for page in range(0, len(flat), per):
-        part = flat[page:page + per]
-        sheet = Image.new("RGB", (cell * 6, (cell + label) * ((len(part) + 5) // 6)), "white")
-        draw = ImageDraw.Draw(sheet)
-        for i, (sid, name, tile) in enumerate(part):
-            x, y = cell * (i % 6), (cell + label) * (i // 6)
-            sheet.paste(tile.resize((cell, cell), Image.LANCZOS), (x, y))
-            draw.text((x + 4, y + cell + 2), f"{page + i + 1} {name}"[:15], fill="black", font=fnt)
-            draw.text((x + 4, y + cell + 22), f"{name}"[12:27] if len(f"{page + i + 1} {name}") > 15 else "", fill="black", font=fnt)
-        sheet.save(os.path.join(SRC, f"check_{page // per + 1:03d}.png"))
     return gen
 
 

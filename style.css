@@ -499,3 +499,43 @@ body.art-fortune .sky {
   background: rgba(0, 0, 0, .55); color: #fff; font-size: .56rem; font-weight: 700; line-height: 1.5; letter-spacing: .04em;
 }
 .pic-s.is-ai::after { right: 50%; bottom: 0; transform: translateX(50%); font-size: .5rem; }
+
+/* ==================== 今夜の手段（作る・買う・外で食べる） ==================== */
+.modebar { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px; margin-top: 12px; }
+.modebar-title { width: 100%; font-size: .86rem; font-weight: 700; color: var(--accent-dark); }
+.modebar button {
+  min-height: 40px; padding: 4px 14px; background: #fff; border: 1.5px solid var(--line); border-radius: 999px;
+  font-size: .9rem; font-weight: 700;
+}
+.modebar button:hover { border-color: var(--ink); }
+.modebar button[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: #fff; }
+/* 手段によって、出す・出さないを切り替える */
+body[data-mode="buy"] .only-cook, body[data-mode="out"] .only-cook { display: none; }
+body:not([data-mode="out"]) .only-out { display: none; }
+body[data-mode="out"] .not-out { display: none; }
+body[data-mode="out"] .seg { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.chip-way { background: #e3f1e8; color: #2a6a47; }
+
+/* ---------- ことばで探す ---------- */
+.qbox { display: block; margin-bottom: 10px; }
+.qbox span { display: block; font-weight: 700; margin-bottom: 4px; }
+.qbox input {
+  width: 100%; min-height: 44px; padding: 8px 16px; border: 1.5px solid var(--line); border-radius: 999px;
+  font: inherit; color: inherit; background: #fff;
+}
+.qbox input:focus { outline: 2px solid var(--accent); border-color: var(--accent); }
+
+/* ---------- どこで買う？（買って帰るのときだけ出す） ---------- */
+body:not([data-mode="buy"]) .only-buy { display: none; }
+.placebar { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px; margin-top: 10px; }
+.placebar button {
+  min-height: 38px; padding: 4px 13px; background: #fff; border: 1.5px solid var(--line); border-radius: 999px;
+  font-size: .86rem; font-weight: 700;
+}
+.placebar button:hover { border-color: var(--accent); }
+.placebar button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+/* ---------- 献立スロット：その手段で候補が無い列 ---------- */
+.cell-none { font-size: .95rem; font-weight: 700; color: var(--sub); }
+.reelwin.is-none { background: #f1e9dc; border-style: dashed; }
+.hold:disabled { opacity: .45; cursor: default; }

@@ -1,22 +1,170 @@
 [
- ["レバー入りタコライス", "Okinawan taco rice: white rice on a plate topped with seasoned minced meat mixed with small pieces of sauteed chicken liver, shredded lettuce, diced tomato and shredded cheese."],
- ["さばキーマ", "keema curry made with flaked mackerel (clearly visible flakes of mackerel fish instead of minced meat) cooked with onion and tomato, served on a plate next to white rice."],
- ["かますの干物のから揚げ", "bite-size pieces of dried barracuda (kamasu himono, silver skin partly visible) coated in starch and deep-fried karaage style until crisp, on a plate with a lemon wedge."],
- ["はもの焼き物", "grilled pike conger (hamo), a Kyoto dish: white fish fillets with many fine parallel knife cuts (honegiri), brushed with soy glaze and grilled until golden brown, served on a plate with a pickled ginger shoot."],
- ["半助豆腐", "hansuke-dofu, an Osaka dish: grilled eel heads (dark glossy kabayaki-style eel heads) simmered with large pieces of grilled tofu and green onions in a sweet soy broth, in a shallow bowl."],
- ["焼きなすとかつおのおろしポン酢", "slices of seared bonito (katsuo tataki, red inside with seared edges) arranged with grilled peeled eggplant, topped with grated daikon radish and chopped green onion, with ponzu sauce."],
-
- ["野菜のカツ煮", "sliced breaded pork cutlet simmered with onion, carrot and green vegetables in dashi broth and bound with soft egg, in a shallow dish."],
- ["豚肉としめじのカレーマヨ炒め", "stir-fried thin pork slices and shimeji mushrooms coated in a yellowish curry-mayonnaise sauce, on a plate. No noodles."],
- ["くるみ豆腐", "kurumi-dofu, an Iwate dish: a smooth, glossy, pale beige square block similar to sesame tofu, made from ground walnuts set with kudzu starch (it is NOT soybean tofu and has no toppings of nuts or beans), served on a small plate with shredded daikon radish beside it and a small spoonful of sweet ginger miso sauce on top."],
- ["冬瓜のサラダ", "salad of thinly sliced winter melon (pale translucent white-green half-moon slices) lightly dressed, with a little dried bonito flakes on top."],
- ["ミルファンティ", "mille fanti, an Italian egg drop soup: clear chicken broth filled with fine fluffy curds made of egg mixed with breadcrumbs and grated cheese, sprinkled with chopped parsley, in a soup bowl. No bread on top, no melted cheese crust."],
- ["きびだんご鍋", "an Okayama hot pot in an earthenware pot with three kinds of round dumplings (chicken meatballs, pink shrimp balls and small white shiratama rice dumplings), chicken pieces, cabbage, carrot, mizuna greens and shiitake mushrooms in clear broth."],
-
- ["とうへい鍋", "tohei-nabe, a Fukuoka fisherman's hot pot: miso-based broth in an earthenware pot with chunks of conger eel (white flesh with dark skin), cabbage, shiitake, shimeji, enoki mushrooms, green onion and tofu."],
- ["くるみ豆腐 (2)", "kurumi-dofu, an Iwate dish: two smooth, glossy, pale beige rectangular slices similar to sesame tofu, made from ground walnuts set with kudzu starch (NOT soybean tofu, no nuts or beans on top), on a small dark plate with a little shredded daikon and a dab of sweet miso sauce."],
- ["とうへい鍋 (2)", "a Fukuoka fisherman's hot pot seen from above: brown miso broth in an earthenware pot with thick pieces of conger eel (white flesh, dark gray skin), cabbage, tofu, green onion and mushrooms."],
- ["半助豆腐 (2)", "an Osaka home dish in a small pot: two or three grilled eel heads (dark glossy, kabayaki glazed) simmered with blocks of grilled tofu with brown grill marks and cut green onions in a dark sweet soy broth."],
- ["はもの焼き物 (2)", "a Kyoto dish: two pieces of pike conger (hamo) grilled with a sweet soy glaze (teriyaki style), golden brown and glossy, the flesh showing many fine parallel cuts, on a rectangular plate."],
- ["ミッレファンティ (2)", "Italian egg drop soup in a white soup bowl: light golden broth with many small fluffy curds of egg, cheese and breadcrumbs floating evenly, a little parsley. No bread slices, no gratin."]
+ [
+  "レバー入りタコライス",
+  "Okinawan taco rice: white rice on a plate topped with seasoned minced meat mixed with small pieces of sauteed chicken liver, shredded lettuce, diced tomato and shredded cheese."
+ ],
+ [
+  "さばキーマ",
+  "keema curry made with flaked mackerel (clearly visible flakes of mackerel fish instead of minced meat) cooked with onion and tomato, served on a plate next to white rice."
+ ],
+ [
+  "かますの干物のから揚げ",
+  "bite-size pieces of dried barracuda (kamasu himono, silver skin partly visible) coated in starch and deep-fried karaage style until crisp, on a plate with a lemon wedge."
+ ],
+ [
+  "はもの焼き物",
+  "grilled pike conger (hamo), a Kyoto dish: white fish fillets with many fine parallel knife cuts (honegiri), brushed with soy glaze and grilled until golden brown, served on a plate with a pickled ginger shoot."
+ ],
+ [
+  "半助豆腐",
+  "hansuke-dofu, an Osaka dish: grilled eel heads (dark glossy kabayaki-style eel heads) simmered with large pieces of grilled tofu and green onions in a sweet soy broth, in a shallow bowl."
+ ],
+ [
+  "焼きなすとかつおのおろしポン酢",
+  "slices of seared bonito (katsuo tataki, red inside with seared edges) arranged with grilled peeled eggplant, topped with grated daikon radish and chopped green onion, with ponzu sauce."
+ ],
+ [
+  "野菜のカツ煮",
+  "sliced breaded pork cutlet simmered with onion, carrot and green vegetables in dashi broth and bound with soft egg, in a shallow dish."
+ ],
+ [
+  "豚肉としめじのカレーマヨ炒め",
+  "stir-fried thin pork slices and shimeji mushrooms coated in a yellowish curry-mayonnaise sauce, on a plate. No noodles."
+ ],
+ [
+  "くるみ豆腐",
+  "kurumi-dofu, an Iwate dish: a smooth, glossy, pale beige square block similar to sesame tofu, made from ground walnuts set with kudzu starch (it is NOT soybean tofu and has no toppings of nuts or beans), served on a small plate with shredded daikon radish beside it and a small spoonful of sweet ginger miso sauce on top."
+ ],
+ [
+  "冬瓜のサラダ",
+  "salad of thinly sliced winter melon (pale translucent white-green half-moon slices) lightly dressed, with a little dried bonito flakes on top."
+ ],
+ [
+  "ミルファンティ",
+  "mille fanti, an Italian egg drop soup: clear chicken broth filled with fine fluffy curds made of egg mixed with breadcrumbs and grated cheese, sprinkled with chopped parsley, in a soup bowl. No bread on top, no melted cheese crust."
+ ],
+ [
+  "きびだんご鍋",
+  "an Okayama hot pot in an earthenware pot with three kinds of round dumplings (chicken meatballs, pink shrimp balls and small white shiratama rice dumplings), chicken pieces, cabbage, carrot, mizuna greens and shiitake mushrooms in clear broth."
+ ],
+ [
+  "とうへい鍋",
+  "tohei-nabe, a Fukuoka fisherman's hot pot: miso-based broth in an earthenware pot with chunks of conger eel (white flesh with dark skin), cabbage, shiitake, shimeji, enoki mushrooms, green onion and tofu."
+ ],
+ [
+  "くるみ豆腐 (2)",
+  "kurumi-dofu, an Iwate dish: two smooth, glossy, pale beige rectangular slices similar to sesame tofu, made from ground walnuts set with kudzu starch (NOT soybean tofu, no nuts or beans on top), on a small dark plate with a little shredded daikon and a dab of sweet miso sauce."
+ ],
+ [
+  "とうへい鍋 (2)",
+  "a Fukuoka fisherman's hot pot seen from above: brown miso broth in an earthenware pot with thick pieces of conger eel (white flesh, dark gray skin), cabbage, tofu, green onion and mushrooms."
+ ],
+ [
+  "半助豆腐 (2)",
+  "an Osaka home dish in a small pot: two or three grilled eel heads (dark glossy, kabayaki glazed) simmered with blocks of grilled tofu with brown grill marks and cut green onions in a dark sweet soy broth."
+ ],
+ [
+  "はもの焼き物 (2)",
+  "a Kyoto dish: two pieces of pike conger (hamo) grilled with a sweet soy glaze (teriyaki style), golden brown and glossy, the flesh showing many fine parallel cuts, on a rectangular plate."
+ ],
+ [
+  "ミッレファンティ (2)",
+  "Italian egg drop soup in a white soup bowl: light golden broth with many small fluffy curds of egg, cheese and breadcrumbs floating evenly, a little parsley. No bread slices, no gratin."
+ ],
+ [
+  "ジンギスカン",
+  "羊肉を溝つきのドーム型鍋で野菜と焼き、たれで食べる北海道の焼き肉料理。 主な材料：羊肉、玉ねぎ、もやし、ピーマン。見た目：中央が盛り上がった溝つきの鍋で焼く羊肉。まわりに玉ねぎ・もやし・ピーマンなどの野菜。"
+ ],
+ [
+  "たちのみそ汁",
+  "タラの白子（たち）を昆布とかつお節の出汁の味噌汁にした、北海道の冬の定番汁物。 主な材料：たらの白子、長ねぎ。見た目：味噌色の汁に白くやわらかな白子が浮かび、刻んだ長ねぎをのせた椀。"
+ ],
+ [
+  "鶏めし",
+  "出典は「美唄のとりめし」。炒めた鶏肉と玉ねぎを醤油・砂糖・酒で味付けし、米と炊き込む。 主な材料：米、鶏もも肉、玉ねぎ。見た目：醤油色に染まった炊き込みご飯に、小さく切った鶏肉と玉ねぎが混ざる。"
+ ],
+ [
+  "鮭の焼き漬け",
+  "焼いたトキシラズ（時鮭）を醤油・みりん・酒の漬け汁に漬けた、ご飯のおかず。 主な材料：鮭。見た目：焼き色のついた鮭の切り身が、醤油色の漬け汁に浸かり皿や保存容器に並ぶ。"
+ ],
+ [
+  "ぬっぺい汁",
+  "豆腐と干ししいたけ、ねぎを醤油味の汁に入れ、すりおろした長芋をかける精進の汁。八杯汁とも呼ぶ 主な材料：豆腐、しいたけ、長いも、長ねぎ。見た目：薄い醤油色の汁に、豆腐・干ししいたけ、ねぎが入り、すりおろした長芋のとろみがかかる"
+ ],
+ [
+  "あわびご飯",
+  "三重の海女獲りあわびを角切りにし、肝・トマトと日本酒で米を炊く。シェフ考案の創作レシピ。 主な材料：あわび、米、トマト。見た目：角切りのあわびと刻んだ肝が混ざった、トマトと酒で炊いたごはん。茶碗盛り。"
+ ],
+ [
+  "いちじく寿司",
+  "酢飯を握り、薄焼き卵と海苔を重ねて桜でんぶで飾り、十字に切る寿司。遠足・運動会の弁当の定番。 主な材料：米、卵、桜でんぶ、のり。見た目：小ぶりの丸い酢飯を海苔と卵で包み、桜でんぶの薄紅色で飾る。上に十字の切り込み。"
+ ],
+ [
+  "かきめし",
+  "ごぼう・にんじん・油揚げとむき身のかきを米に載せて炊く炊き込みご飯。集まりの料理。 主な材料：かき、米、油揚げ、ごぼう。見た目：ご飯の上にかきとごぼう・にんじん・油揚げの具が載り、ねぎを散らした炊き込みご飯。"
+ ],
+ [
+  "かぼちゃのヨーグルトサラダ",
+  "ゆでたかぼちゃをヨーグルトとマヨネーズで和え、干しぶどうとくるみを加えて冷やす洋風サラダ。 主な材料：かぼちゃ、ヨーグルト、干しぶどう、くるみ。見た目：黄色いかぼちゃが白いヨーグルトで和えられ、干しぶどうの黒とくるみの茶が混ざる。"
+ ],
+ [
+  "そうめんぬた",
+  "鈴鹿市国府地区の郷土料理。九条ねぎとそうめんをゆで、白味噌・砂糖・酢・ごまの和えだれで和える。 主な材料：そうめん、長ねぎ。見た目：白味噌だれで和えた、ねぎの緑とそうめんの白の和え物。ごまをふり、小鉢に盛る。"
+ ],
+ [
+  "にしんとなすの煮物",
+  "身欠きにしんとなすを調味液で煮含める京都の煮物（にしん茄子）。なすが旬の夏から秋に食べる。 主な材料：にしん、なす。見た目：濃い醤油色に煮詰めたにしんとなすを器に盛る。"
+ ],
+ [
+  "干し柿なます",
+  "塩もみした大根とにんじんの千切りを、裂いた古老柿（干し柿）と酢・みりん・砂糖で和える冬の酢の物。おせちに入れる。 主な材料：大根、にんじん、干し柿。見た目：大根の白とにんじんの橙の千切りに、黒褐色の干し柿を細かく裂いて混ぜる。"
+ ],
+ [
+  "万願寺とうがらしとじゃこの炊いたん",
+  "辛みのない万願寺とうがらしとちりめんじゃこを、だし・しょうゆ・みりん・酒で煮た夏の常備菜。 主な材料：万願寺とうがらし、しらす。見た目：濃い緑のつやのある肉厚の大きな唐辛子を切って、じゃこと煮て小鉢に盛る"
+ ],
+ [
+  "かます寿司",
+  "塩漬けして甘酢に浸したかますの身にすし飯を詰めて巻き、切り分ける福岡の寿司。旬は9〜10月、秋祭りの料理。 主な材料：かます、米。見た目：かますの身にすし飯を詰めて筒状に巻き、切り分けた断面にすし飯が見える。ハランを添えることもある。"
+ ],
+ [
+  "博多雑煮",
+  "焼きあご出汁にぶり・丸もち・野菜を入れる福岡のお正月の雑煮。かつお菜が欠かせない。 主な材料：ぶり、もち、しいたけ、里いも。見た目：透き通った焼きあご出汁の椀に、小さな丸もち、ぶり、濃い緑のかつお菜、赤いにんじん、白いかまぼこなどが入る。"
+ ],
+ [
+  "いかすみ汁",
+  "白イカと赤身の豚肉、ニガナをだしで煮て、最後にイカスミを加える真っ黒な沖縄の汁物。 主な材料：いか、豚こま肉、ニガナ。見た目：墨のように真っ黒な汁に、白いイカの身と豚肉、ニガナが入る。汁椀盛り。"
+ ],
+ [
+  "チムシンジ",
+  "豚レバーと豚肉、にんじん・じゃがいもをかつおだしで煮てみそか塩で整える、滋養の汁。体調が悪い時に食べる。 主な材料：豚レバー、豚こま肉、にんじん、じゃがいも。見た目：短冊切りのレバーと豚肉、野菜がやわらかく煮えたスープ状の汁に、青ねぎなどが散る。"
+ ],
+ [
+  "ミヌダル",
+  "豚ロース薄切り肉に黒ごまだれをまぶして蒸した、沖縄の祝い料理。蒸すので味はあっさり。 主な材料：豚ロース肉、黒ごま。見た目：黒ごまだれをまとった豚ロース薄切りを蒸した、全体が真っ黒な一品。重箱などに詰める。"
+ ],
+ [
+  "もずく丼",
+  "もずくを豚ひき肉や野菜と炒めてご飯にのせた沖縄の家庭料理。しょうが汁で臭みを抑え甘辛味。 主な材料：米、もずく、豚ひき肉、玉ねぎ。見た目：ご飯の上に、もずくと豚ひき肉・野菜の茶色くとろみのある炒め物をのせた丼。"
+ ],
+ [
+  "ヤファラジューシー",
+  "豚だしと豚バラ肉・フーチバーで米を雑炊状に柔らかく炊く沖縄の汁気のあるご飯。ボロボロジューシーとも。 主な材料：米、豚バラ肉、よもぎ（フーチバー）。見た目：雑炊のように柔らかく炊いた米に、豚バラ肉とフーチバーの緑が混ざる、汁気のあるおじや状。"
+ ],
+ [
+  "牛汁",
+  "薄切り牛肉とにんじんを昆布・かつおだしで煮て、おろし生姜を加える沖縄の汁物。 主な材料：牛薄切り肉、にんじん、昆布。見た目：薄茶の汁に薄切り牛肉と橙色のにんじん、昆布。お椀に盛り、おろし生姜を添える。"
+ ],
+ [
+  "タレカツ丼",
+  "薄いとんかつを甘辛い醤油だれにくぐらせ、ご飯にのせる新潟の丼。卵とじにせず、キャベツも使わない 主な材料：豚ロース肉、米。見た目：ご飯の上に、茶色いたれがしみた薄めのとんかつが2枚以上のった、卵とじ・キャベツなしの丼"
+ ],
+ [
+  "いちじく寿司 (2)",
+  "酢飯を握り、薄焼き卵と海苔を重ねて桜でんぶで飾り、十字に切る寿司。遠足・運動会の弁当の定番。 主な材料：米、卵、桜でんぶ、のり。見た目：小ぶりの丸い酢飯を海苔と卵で包み、桜でんぶの薄紅色で飾る。上に十字の切り込み。（別の角度から）"
+ ],
+ [
+  "かます寿司 (2)",
+  "塩漬けして甘酢に浸したかますの身にすし飯を詰めて巻き、切り分ける福岡の寿司。旬は9〜10月、秋祭りの料理。 主な材料：かます、米。見た目：かますの身にすし飯を詰めて筒状に巻き、切り分けた断面にすし飯が見える。ハランを添えることもある。（別の角度から）"
+ ]
 ]

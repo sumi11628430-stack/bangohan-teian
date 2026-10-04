@@ -10,7 +10,57 @@
     name: a[0], kubun: L.kubun[a[1]], zairyo: L.zairyo[a[2]], genre: L.genre[a[3]], kisetsu: L.kisetsu[a[4]],
     mats: a[5], volume: L.volume[a[6]], veg: L.veg[a[7]], effort: L.effort[a[8]],
     tags: a[9].map(t => L.tags[t]), color: L.color[a[10]], teiban: !!a[11], sites: a[12],
+    buy: !!a[13], out: !!a[14], shop: a[15] >= 0 ? L.shop[a[15]] : '', cook: a[16] !== 0, places: a[17] || 0,
   }));
+  // ワード検索用：ひらがな・カタカナ・全角半角の違いをなくした文字にする
+  const kana = s => s.normalize('NFKC').toLowerCase().replace(/[\u30a1-\u30f6]/g, c => String.fromCharCode(c.charCodeAt(0) - 0x60));
+  // お店の種類は「外で食べる」のときだけ探す対象にする（作る・買うのときに、関係のない料理が出ないように）
+  D.forEach(d => {
+    d.text = kana([d.name, d.mats.join(' '), d.kubun, d.genre, d.zairyo].join(' '));
+    d.textOut = d.text + ' ' + kana(d.shop);
+  });
+  // よくある言い換え（入力した言葉 → データの書き方。書き方が2通りある料理は両方を並べる）
+  const WORDS = {
+    // 肉・卵
+    'とり': '鶏', '鳥': '鶏', 'ちきん': '鶏', 'ぶた': '豚', 'ぽーく': '豚', 'ぎゅう': '牛', 'びーふ': '牛', 'にく': '肉',
+    '挽き肉': 'ひき肉', '挽肉': 'ひき肉', 'みんち': 'ひき肉', 'てば': '手羽', 'たまご': '卵', '玉子': '卵', 'だんご': '団子', '団子': 'だんご',
+    // 魚介
+    'さかな': '魚', 'さけ': '鮭', 'しゃけ': '鮭', '海老': 'えび', '蛸': 'たこ', '烏賊': 'いか', '鯖': 'さば', '鯵': 'あじ', '鰤': 'ぶり', '鰯': 'いわし', '鱈': 'たら', 'たい': '鯛',
+    '牡蠣': 'かき', '鰻': 'うなぎ', '秋刀魚': 'さんま', '鮪': 'まぐろ', '鰹': 'かつお', '帆立': 'ほたて', 'さしみ': '刺身', '刺し身': '刺身',
+    // 野菜・豆腐・調味料
+    'やさい': '野菜', 'たまねぎ': '玉ねぎ', '玉葱': '玉ねぎ', 'ながねぎ': '長ねぎ', '葱': 'ねぎ', 'だいこん': '大根', 'はくさい': '白菜', '茄子': 'なす', '南瓜': 'かぼちゃ', '人参': 'にんじん',
+    '芋': 'いも', 'ながいも': ['長いも', '長芋'], 'さといも': '里いも', 'ほうれんそう': 'ほうれん草', '椎茸': 'しいたけ', '茸': 'きのこ', '蓮根': 'れんこん', '牛蒡': 'ごぼう', '筍': 'たけのこ', '竹の子': 'たけのこ',
+    '胡麻': 'ごま', '生姜': 'しょうが', '味噌': 'みそ', '醤油': 'しょうゆ', 'とうふ': '豆腐', 'どうふ': '豆腐', 'あつあげ': '厚揚げ', 'あぶらあげ': '油揚げ', 'なっとう': '納豆', 'はるさめ': '春雨',
+    // 作り方
+    'やき': '焼き', 'あげ': '揚げ', 'いため': '炒め', 'むし': '蒸し', 'あえ': '和え', '和え': 'あえ', 'づけ': '漬け', 'にもの': '煮物', 'にこみ': '煮込み', 'みそに': 'みそ煮', 'かくに': '角煮', 'しお': '塩',
+    'からあげ': 'から揚げ', '唐揚': 'から揚', 'てんぷら': '天ぷら', '天麩羅': '天ぷら', 'てりやき': '照り焼き', 'てり焼き': '照り焼き', '照焼': '照り焼き', 'なんばん': '南蛮', 'たつた': '竜田',
+    'あげだし': ['揚げ出し', '揚げだし'], '揚げだし': '揚げ出し', '揚げ出し': '揚げだし',
+    // 料理の名前
+    'ぎょうざ': '餃子', 'ぎょーざ': '餃子', '焼そば': '焼きそば', 'しゅーまい': 'しゅうまい', '焼売': 'しゅうまい', 'はるまき': '春巻', 'すぶた': '酢豚', 'まーぼー': '麻婆', '麻婆': 'まーぼー',
+    'ほいこーろー': '回鍋肉', '回鍋肉': 'ほいこーろー', '青椒肉絲': 'ちんじゃおろーす', 'ばんばんじー': '棒棒鶏', 'ゆーりんちー': '油淋鶏', 'たんたん': '担々', '坦々': '担々', '担担': '担々', '担々': 'たんたん',
+    'やきにく': ['焼肉', '焼き肉'], '焼き肉': '焼肉', '焼肉': '焼き肉', 'やきとり': '焼き鳥', '焼き鳥': 'やきとり', '焼鳥': ['焼き鳥', 'やきとり'], 'とんじる': ['豚汁', 'とん汁'], 'ぶたじる': '豚汁', '豚汁': 'とん汁',
+    '豚かつ': 'とんかつ', 'おやこ': '親子', 'てんどん': '天丼', 'てんしんはん': '天津飯', 'おこのみ': 'お好み', 'ちゃわん': '茶碗', '茶わん': '茶碗', 'ひやし': '冷やし', '冷し': '冷やし',
+    'ひややっこ': '冷奴', '冷ややっこ': '冷奴', '冷や奴': '冷奴', 'ゆどうふ': '湯豆腐', 'しらあえ': '白和え', 'すのもの': '酢の物', 'お浸し': 'おひたし', '金平': 'きんぴら', 'ぞうすい': '雑炊',
+    'すぱげてぃ': 'すぱげってぃ', 'ぱすた': 'すぱげってぃ', 'やきめし': 'ちゃーはん', '焼き飯': 'ちゃーはん', '焼飯': 'ちゃーはん', '炒飯': 'ちゃーはん', '蕎麦': 'そば', '素麺': 'そうめん', 'びびんぱ': 'びびんば',
+    // ご飯・汁・鍋・ジャンル・お店
+    'ごはん': 'ご飯', '御飯': 'ご飯', 'たきこみ': '炊き込み', '炊込': '炊き込み', 'どんぶり': '丼', 'どん': '丼', 'なべ': '鍋', 'めん': '麺', 'しる': '汁', 'すし': '寿司', '鮨': '寿司',
+    'わしょく': '和', 'ようしょく': '洋', 'ちゅうか': '中華', 'かんこく': '韓国', 'わふう': '和風', 'ようふう': '洋風', 'いざかや': '居酒屋', 'ていしょく': '定食',
+  };
+  const WORD_KEYS = Object.keys(WORDS).sort((a, b) => b.length - a.length);
+  // 入力した言葉を、データの書き方に直した候補を並べる（どれか1つでも含む料理を探す）
+  function variants(t) {
+    const out = new Set([t]);
+    // 言葉の中の言い換えを、長いものから順にまとめて置き換えた形（例：とりにく→鶏肉）
+    let all = '';
+    for (let i = 0; i < t.length;) {
+      const k = WORD_KEYS.find(key => t.startsWith(key, i));
+      if (k) { all += [].concat(WORDS[k])[0]; i += k.length; } else all += t[i++];
+    }
+    out.add(all);
+    // 1か所だけ置き換えた形（例：ちきんなんばん→ちきん南蛮）
+    WORD_KEYS.forEach(k => { if (t.includes(k)) [].concat(WORDS[k]).forEach(v => out.add(t.split(k).join(v))); });
+    return [...out].map(kana);
+  }
 
   const SITE_NAME = '毎日の晩御飯の提案';
   const URANAI_URL = 'https://uranai-yakata.netlify.app/zodiac.html';
@@ -134,6 +184,18 @@
     set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* 保存できない環境では記録なしで動かす */ } },
   };
   let recent = store.get('bangohan_recent', []);
+
+  // ---------- 今夜の手段（まだ決めていない／家で作る／買って帰る／外で食べる） ----------
+  const MODES = ['any', 'cook', 'buy', 'out'];
+  let mode = store.get('bangohan_mode', 'any');
+  if (!MODES.includes(mode)) mode = 'any';
+  // 買って帰るときの場所（0＝どこでも、1＝コンビニ、2＝スーパー、4＝お弁当・持ち帰りの店。料理側は足し合わせた数で持つ）
+  const PLACES = { 1: 'コンビニ', 2: 'スーパー', 4: 'お弁当・持ち帰りの店' };
+  let place = Number(store.get('bangohan_place', 0));
+  if (!PLACES[place]) place = 0;
+  let epoch = 0;  // 手段や買う場所を変えるたびに1つ進める。回っている途中で変えたら、前の条件の結果は出さない
+  // その手段（と、買う場所）で提案できる料理か
+  const inMode = d => mode === 'any' || (mode === 'cook' ? d.cook : mode === 'buy' ? d.buy && (!place || (d.places & place) > 0) : d.out);
   const daysAgo = dstr => Math.round((new Date(TODAY) - new Date(dstr)) / 86400000);
   const avoidSet = () => new Set(recent.filter(r => daysAgo(r.d) < AVOID_DAYS).map(r => r.n));
 
@@ -186,11 +248,44 @@
       h('figcaption', {}, p.ai ? '画像はAIで作成したイメージです'
         : h('a', { href: p.page, target: '_blank', rel: 'noopener', text: `写真：${p.by}／${p.lic}／Wikimedia Commons` })));
   }
+  const mapUrl = q => 'https://www.google.com/maps/search/' + encodeURIComponent(q);
+  // 料理が決まったあとの出口。手段を選んでいるときはその手段だけ、決めていないときは使える出口を全部出す
+  function exits(d) {
+    // 今の手段では提案できない料理を開いたときは、決めていないときと同じく使える出口を全部出す
+    const any = mode === 'any' || !inMode(d), list = [];
+    const link = (href, text) => h('a', { class: 'btn', href, target: '_blank', rel: 'noopener', text });
+    if (d.cook && (any || mode === 'cook')) list.push(link(recipeUrl(d.name), any ? '作る：作り方を探す' : '作り方を探す'));
+    // 買うときの探し先は、その料理が買える場所に合わせる（持ち帰りの店で買えない料理を「持ち帰り」で探さない）
+    if (d.buy && any) list.push(d.places & 4 ? link(mapUrl(d.name + ' 持ち帰り'), '買う：持ち帰りの店を探す') : link(mapUrl('スーパー'), '買う：近くのスーパーを探す'));
+    else if (d.buy && mode === 'buy') {
+      const to = {
+        4: [mapUrl(d.name + ' 持ち帰り'), '持ち帰りできる店を地図で探す', '持ち帰りの店を探す'],
+        2: [mapUrl('スーパー'), '近くのスーパーを地図で探す', 'スーパーを探す'],
+        1: [mapUrl('コンビニ'), '近くのコンビニを地図で探す', 'コンビニを探す'],
+      };
+      // 場所を選んでいればその場所だけ、「どこでも」ならその料理が買える場所を全部（短い言葉で）
+      [4, 2, 1].filter(p => (d.places & p) && (!place || p === place)).forEach(p => list.push(link(to[p][0], to[p][place ? 1 : 2])));
+    }
+    if (d.out && (any || mode === 'out')) list.push(link(mapUrl(d.name), any ? '食べに行く：近くの店を探す' : '近くのお店を地図で探す'));
+    return list;
+  }
+  // 料理名の下の一言。作るときは材料、買う・外食のときはどこで手に入るか
+  function hint(d) {
+    if (mode === 'buy' && d.buy) {
+      if (place === 1 && (d.places & 1)) return 'コンビニで買える料理です';
+      if (place === 2 && (d.places & 2)) return 'スーパーのお惣菜・お弁当売り場で買える料理です';
+      if (place === 4 && (d.places & 4)) return 'お弁当屋や、持ち帰りのできる店で買える料理です';
+      return '買える場所：' + [1, 2, 4].filter(p => d.places & p).map(p => PLACES[p]).join('・');
+    }
+    if (mode === 'out' && d.out) return d.shop ? `「${d.shop}」のお店などで食べられます` : '外食で食べられる料理です';
+    return '主な材料：' + d.mats.join('・');
+  }
   function chips(d) {
     const list = [d.kubun, d.genre];
     if (d.kisetsu !== '通年') list.push(d.kisetsu + 'の料理');
     if (d.teiban) list.push('定番');
-    return h('div', { class: 'chips' }, list.map(t => h('span', { class: 'chip', text: t })));
+    const way = mode === 'any' ? [d.buy && 'お惣菜で買える', d.out && '外食で食べられる'].filter(Boolean) : [];
+    return h('div', { class: 'chips' }, list.map(t => h('span', { class: 'chip', text: t })), way.map(t => h('span', { class: 'chip chip-way', text: t })));
   }
   function dishCard(d, opt) {
     opt = opt || {};
@@ -198,10 +293,10 @@
     return h('article', { class: 'dish' + (opt.big ? ' dish-big' : '') + (opt.reveal ? ' reveal' : '') },
       photo,
       h('div', { class: 'dish-head' }, photo ? null : pic(d), h('div', { class: 'dish-title' }, h('h3', { class: 'dish-name', text: d.name }), chips(d))),
-      h('p', { class: 'mats', text: '主な材料：' + d.mats.join('・') }),
+      h('p', { class: 'mats', text: hint(d) }),
       h('div', { class: 'actions' },
         h('button', { class: 'btn btn-primary', type: 'button', onclick: () => decide([d.name]), text: 'これに決定' }),
-        h('a', { class: 'btn', href: recipeUrl(d.name), target: '_blank', rel: 'noopener', text: '作り方を探す' }),
+        exits(d),
         h('button', { class: 'btn', type: 'button', onclick: () => openShare([d.name]), text: 'シェア' })));
   }
   function menuCard(set) {
@@ -234,6 +329,8 @@
     const [view, game] = place.split('/');
     show(VIEWS.includes(view) ? view : 'home');
     if (GAMES.includes(game)) showGame(game);
+    // 外で食べるときは献立スロットを出さない（戻るや保存したURLで来ても、ルーレットを見せる）
+    if (mode === 'out' && $('#game-slot').classList.contains('is-active')) showGame('roulette');
     $('#back').hidden = here === 'home';
   }
   function go(place) {
@@ -263,26 +360,34 @@
 
   // ---------- 今日の一品 ----------
   function renderHome() {
-    const rng = seeded('today|' + TODAY);
-    const pool = k => D.filter(d => d.teiban && inSeason(d) && k(d));
+    const rng = seeded('today|' + TODAY + '|' + mode);
+    // その手段で提案できる料理から選ぶ。定番が少なすぎる種類は、定番以外も含める
+    const pool = k => { const all = D.filter(d => inMode(d) && inSeason(d) && k(d)); const t = all.filter(d => d.teiban); return t.length >= 5 ? t : all; };
     const mains = pool(d => MAIN_KUBUN.includes(d.kubun));
     const sides = pool(d => d.kubun === '副菜');
     const soups = pool(d => d.kubun === '汁物');
     const shot = mains.filter(imgOf);
     const from = shot.length >= 20 ? shot : mains;  // 写真のある料理が十分あれば、その中から選ぶ
     const main = from[Math.floor(rng() * from.length)];
-    const withs = [sides[Math.floor(rng() * sides.length)], soups[Math.floor(rng() * soups.length)]];
-    $('#today-label').textContent = TODAY_LABEL + 'の一品';
-    $('#today-dish').replaceChildren(dishCard(main, { big: true }));
+    // 外で食べるときは、副菜・汁物の組み合わせは出さない
+    const withs = mode === 'out' ? [] : [sides[Math.floor(rng() * sides.length)], soups[Math.floor(rng() * soups.length)]].filter(Boolean);
+    $('#today-label').textContent = TODAY_LABEL + { any: 'の一品', cook: 'に作るなら', buy: 'に買って帰るなら', out: 'に食べに行くなら' }[mode];
+    $('#today-dish').replaceChildren(main ? dishCard(main, { big: true }) : h('p', { class: 'note', text: 'この条件で提案できる料理がありません。' }));
+    $('#today-with').hidden = withs.length === 0;
     $('#today-with').replaceChildren(
       h('p', { class: 'with-title', text: '合わせるなら' }),
       h('ul', {}, withs.map(d => h('li', {}, h('button', { class: 'link', type: 'button', onclick: () => openDetail(d), text: `${d.kubun}：${d.name}` })))));
   }
 
   // ---------- さがす ----------
-  const F = { mats: new Set(), zairyo: new Set(), genre: new Set(), purpose: new Set(), season: new Set(), kubun: new Set() };
+  const F = { mats: new Set(), zairyo: new Set(), genre: new Set(), purpose: new Set(), season: new Set(), kubun: new Set(), shop: new Set() };
   let shown = PAGE;
-  const hasFilter = () => Object.values(F).some(s => s.size);
+  let query = [];  // ワード検索の言葉（空白で区切った分だけ、すべて含む料理を探す。1つの言葉につき、言い換えた候補を並べて持つ）
+  const hasFilter = () => Object.values(F).some(s => s.size) || query.length > 0;
+  const matchWords = d => {
+    const text = mode === 'out' ? d.textOut : d.text;
+    return query.every(vs => vs.some(v => text.includes(v)));
+  };
 
   function pickButtons(box, items, set) {
     box.append(...items.map(key => {
@@ -316,11 +421,14 @@
     pickButtons($('#f-purpose'), Object.keys(PURPOSE), F.purpose);
     pickButtons($('#f-season'), ['春', '夏', '秋', '冬'], F.season);
     pickButtons($('#f-kubun'), L.kubun, F.kubun);
+    pickButtons($('#f-shop'), L.shop, F.shop);
   }
   function filtered() {
     const hit = d => d.mats.filter(m => F.mats.has(m)).length;
     return D
-      .filter(d => (!F.kubun.size || F.kubun.has(d.kubun))
+      .filter(d => inMode(d) && matchWords(d)
+        && (!F.shop.size || F.shop.has(d.shop))
+        && (!F.kubun.size || F.kubun.has(d.kubun))
         && (!F.zairyo.size || F.zairyo.has(d.zairyo))
         && (!F.genre.size || F.genre.has(d.genre))
         && (!F.season.size || F.season.has(d.kisetsu))
@@ -339,12 +447,14 @@
         pic(d, 'pic-s'),
         h('span', { class: 'row-main' },
           h('span', { class: 'row-name', text: d.name }), h('br'),
-          h('span', { class: 'row-meta', text: [d.kubun, d.genre, d.mats.join('・')].join('｜') })),
+          h('span', { class: 'row-meta', text: (mode === 'out' ? [d.shop, d.genre] : mode === 'buy' ? [d.kubun, d.genre] : [d.kubun, d.genre, d.mats.join('・')]).join('｜') })),
         hit > 0 && F.mats.size > 1 ? h('span', { class: 'row-hit', text: `材料${hit}つ一致` }) : null))));
     $('#result-more').hidden = list.length <= shown;
   }
   function clearFilters() {
     Object.values(F).forEach(s => s.clear());
+    query = [];
+    $('#q').value = '';
     $$('#view-search .pick').forEach(b => b.setAttribute('aria-pressed', 'false'));
     shown = PAGE;
     renderResults();
@@ -355,7 +465,9 @@
   const teibanOnly = () => $('#teiban-only').checked;
   const photoOnly = () => $('#photo-only').checked;
   function base(test) {
-    const list = D.filter(d => inSeason(d) && (!teibanOnly() || d.teiban) && test(d));
+    const all = D.filter(d => inMode(d) && inSeason(d) && test(d));
+    let list = teibanOnly() ? all.filter(d => d.teiban) : all;
+    if (list.length < PHOTO_MIN) list = all;  // 定番だけでは少なすぎるときは、定番以外も含める
     if (!photoOnly()) return list;
     const shot = list.filter(imgOf);
     return shot.length >= PHOTO_MIN ? shot : list;  // 写真つきが少なすぎる種類は全体から選ぶ
@@ -435,7 +547,8 @@
   }
   function updatePoolNote() {
     const n = roulettePool().length;
-    $('#roulette-pool').textContent = hasFilter() ? `「さがす」で絞った${n}件から選びます` : `今の季節に合う主役の料理${n}件から選びます`;
+    const what = { any: '今の季節に合う主役の料理', cook: '家で作れる主役の料理', buy: (place ? PLACES[place] + 'で買える' : '買って帰れる') + '主役の料理', out: '外で食べられる主役の料理' }[mode];
+    $('#roulette-pool').textContent = hasFilter() ? `「さがす」で絞った${n}件から選びます` : `${what}${n}件から選びます`;
     $('#roulette-go').disabled = n === 0 || wheelBusy;
   }
   function runRoulette() {
@@ -459,7 +572,9 @@
     const seg = 360 / items.length;
     const mid = k * seg + seg / 2 + (Math.random() - .5) * seg * .6;
     wheelDeg = (((270 - mid) % 360) + 360) % 360;
+    const at = epoch;
     const finish = () => {
+      if (at !== epoch) return;  // 回っている途中で手段が変わった
       wheelBusy = false;
       wrap.classList.remove('is-spinning');
       wrap.classList.add('is-win');
@@ -482,7 +597,7 @@
     wheelDeg += 360 * 7;
     wheel.style.transition = `transform ${SPIN_MS}ms cubic-bezier(.1, .62, .08, 1)`;
     wheel.style.transform = `rotate(${wheelDeg}deg)`;
-    setTimeout(() => drawWheel(items, -1), SPIN_MS - OPEN_MS);  // 止まる2秒前に「？」を料理名に変える
+    setTimeout(() => { if (at === epoch) drawWheel(items, -1); }, SPIN_MS - OPEN_MS);  // 止まる2秒前に「？」を料理名に変える
     setTimeout(finish, SPIN_MS + 100);
   }
 
@@ -495,7 +610,9 @@
   // 写真と名前を縦に流してから止める
   function spinReel(win, pool, ms, final, done) {
     const strip = win.firstElementChild;
+    const at = epoch;
     const settle = () => {
+      if (at !== epoch) return;  // 回っている途中で手段が変わった
       strip.style.transition = 'none'; strip.style.transform = 'none';
       strip.replaceChildren(cell(final));
       win.classList.remove('is-spinning'); win.classList.add('is-done');
@@ -514,6 +631,23 @@
     // 最後のマス（当たり）の位置まで、実際の高さを測って動かす
     strip.style.transform = `translateY(${strip.firstElementChild.offsetTop - strip.lastElementChild.offsetTop}px)`;
     setTimeout(settle, ms + 80);
+  }
+  // その手段で候補が無い列（「買って帰る」の汁物など）は、回さずに「なし」と見せて理由を書く
+  function markReels() {
+    const none = [];
+    REELS.forEach((kubun, i) => {
+      const empty = base(d => d.kubun === kubun).length === 0;
+      const win = $(`[data-reel="${i}"]`);
+      win.classList.toggle('is-none', empty);
+      $(`[data-hold="${i}"]`).disabled = empty;
+      if (empty) { none.push(kubun); win.firstElementChild.replaceChildren(h('div', { class: 'cell' }, h('span', { class: 'cell-none', text: 'なし' }))); }
+    });
+    const what = mode === 'buy' ? (place ? PLACES[place] + 'で買える' : '買って帰れる') : mode === 'out' ? '外で食べられる' : '今の季節に合う';
+    const note = $('#slot-none');
+    note.hidden = none.length === 0;
+    note.textContent = none.length === REELS.length ? `${what}料理の候補がありません。`
+      : none.length ? `${what}${none.join('・')}の候補が無いので、ほかの列だけ回します。` : '';
+    $('#slot-go').disabled = none.length === REELS.length;
   }
   function runSlot() {
     const btn = $('#slot-go');
@@ -566,19 +700,21 @@
     return h('button', { class: 'duel-btn enter-' + side, type: 'button' },
       pic(d, 'pic-l'),
       h('span', { class: 'duel-name', text: d.name }),
-      h('span', { class: 'duel-meta', text: `${d.kubun}・${d.genre}` }));
+      h('span', { class: 'duel-meta', text: mode === 'out' ? d.shop : `${d.kubun}・${d.genre}` }));
   }
   function renderDuel(keep) {
     $('#duel-progress').textContent = `第${duel.round}問／全${DUEL_ROUNDS}問　どっちが食べたい？`;
     renderDots(duel.round - 1);
     const a = duelButton(duel.left, 'left'), b = duelButton(duel.right, 'right');
     let locked = false;
+    const cur = duel;
     const choose = (win, won, lost) => {
       if (locked) return;
       locked = true;
       won.classList.add('is-win');
       lost.classList.add('is-lose');
       const next = () => {
+        if (duel !== cur) return;  // 勝ち負けの動きの途中で手段が変わった
         if (duel.round >= DUEL_ROUNDS) { finishDuel(win); return; }
         duel.round++;
         // 勝った料理は残り、負けた側に次の料理が入る
@@ -628,10 +764,14 @@
       const rng = seeded(`fortune|${TODAY}|${sign}`);
       const color = L.color[Math.floor(rng() * L.color.length)];
       // その色の料理を、主役の定番→定番→全部の順で探す（少なすぎる色でも必ず1品出す）
-      const ok = d => d.color === color && inSeason(d);
+      const ok = d => inMode(d) && d.color === color && inSeason(d);
       let pool = D.filter(d => ok(d) && d.teiban && MAIN_KUBUN.includes(d.kubun));
       if (pool.length < 3) pool = D.filter(d => ok(d) && d.teiban);
       if (pool.length < 3) pool = D.filter(ok);
+      // 手段や買う場所によっては、その色の料理が1品も無い。そのときは色にこだわらず、主役の料理から選ぶ
+      const noColor = pool.length === 0;
+      if (noColor) pool = D.filter(d => inMode(d) && inSeason(d) && MAIN_KUBUN.includes(d.kubun));
+      if (!pool.length) pool = D.filter(inMode);
       const shot = pool.filter(imgOf);
       if (shot.length >= 3) pool = shot;
       const dish = pool[Math.floor(rng() * pool.length)];
@@ -640,8 +780,10 @@
           signIcon(i, mark, 'sky'),
           h('p', { class: 'sky-title', text: `${TODAY_LABEL}の${sign}` }),
           h('p', { class: 'lucky' }, h('span', { class: 'dot dot-l', 'data-color': color }), `ラッキーカラーは「${color}」`)),
-        h('p', { class: 'note', text: `食卓に${color}の一品をどうぞ。今日のラッキー晩御飯はこちら。` }),
-        dishCard(dish),
+        h('p', { class: 'note', text: !dish ? '今の条件では、提案できる料理がありません。'
+          : noColor ? `今の条件では${color}の料理が見つからないので、かわりに今日の一品をどうぞ。`
+          : `食卓に${color}の一品をどうぞ。今日のラッキー晩御飯はこちら。` }),
+        dish ? dishCard(dish) : null,
         h('p', { class: 'note' }, '占いは楽しみとしてお使いください。',
           h('a', { href: URANAI_URL, target: '_blank', rel: 'noopener', text: '「☆ねこ占ぽ」で星座占いを見る' }))));
       bringIntoView(box);
@@ -731,6 +873,47 @@
     toastTimer = setTimeout(() => { t.hidden = true; }, 2600);
   }
 
+  // ---------- 今夜の手段を切り替える ----------
+  function setMode(m) {
+    mode = MODES.includes(m) ? m : 'any';
+    store.set('bangohan_mode', mode);
+    refresh();
+  }
+  function setPlace(p) {
+    place = PLACES[p] ? Number(p) : 0;
+    store.set('bangohan_place', place);
+    refresh();
+  }
+  // 手段や買う場所が変わったら、画面全体をその条件に合わせ直す
+  function refresh() {
+    document.body.dataset.mode = mode;
+    $$('.modebar button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === mode)));
+    $$('.placebar button').forEach(b => b.setAttribute('aria-pressed', String(Number(b.dataset.place) === place)));
+    // その手段で使わない条件は外す（画面から隠れた条件が効いたままにならないように）
+    if (mode === 'buy' || mode === 'out') { F.mats.clear(); $$('#f-mats .pick').forEach(b => b.setAttribute('aria-pressed', 'false')); }
+    if (mode !== 'out') { F.shop.clear(); $$('#f-shop .pick').forEach(b => b.setAttribute('aria-pressed', 'false')); }
+    shown = PAGE;
+    renderHome();
+    renderResults();
+    // おまかせ・占いの結果は前の手段のものなので、最初の状態に戻す。回っている途中のものは止める
+    epoch++;
+    wheelBusy = false;
+    clearTimeout(fortuneTimer);
+    resetRoulette();
+    slot.fill(null); held.fill(false);
+    $$('.hold').forEach(b => b.setAttribute('aria-pressed', 'false'));
+    $$('[data-reel] .strip').forEach(s => { s.style.transition = 'none'; s.style.transform = 'none'; s.replaceChildren(cell(null)); });
+    $$('.reelwin').forEach(w => w.classList.remove('is-done', 'is-spinning'));
+    $('#slot-result').replaceChildren(); $('.machine').classList.remove('is-win'); $('#slot-go').textContent = '回す';
+    markReels();
+    duel = null;
+    $('#duel-area').replaceChildren(); $('#duel-result').replaceChildren();
+    $('#duel-go').hidden = false; $('#duel-go').textContent = 'はじめる'; $('#duel-note').hidden = false;
+    $('#duel-progress').textContent = 'どっちが食べたい？'; renderDots(0);
+    $('#fortune-result').replaceChildren(); $$('#signs .sign').forEach(b => b.setAttribute('aria-pressed', 'false'));
+    if (mode === 'out' && here === 'play/slot') go('play/roulette');  // 外で食べるときは献立スロットを出さない
+  }
+
   // ---------- 写真の出典 ----------
   function renderCredits() {
     const names = Object.keys(IMG);
@@ -744,6 +927,9 @@
   // 使える絵に合わせて、画面に目印を付ける（スタイル側で背景を切り替える）
   Object.keys(ART).forEach(k => { if (ART[k]) document.body.classList.add('art-' + k.split('_')[0]); });
 
+  document.body.dataset.mode = mode;
+  $$('.modebar button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === mode)));
+  $$('.placebar button').forEach(b => b.setAttribute('aria-pressed', String(Number(b.dataset.place) === place)));
   renderHome();
   renderRecent();
   buildFilters();
@@ -753,6 +939,7 @@
   renderCredits();
   buildBulbs();
   resetRoulette();
+  markReels();
 
   $$('.tabbar button').forEach(b => b.addEventListener('click', () => go(b.dataset.view)));
   $$('[data-go]').forEach(b => b.addEventListener('click', () => go(b.dataset.go + (b.dataset.game ? '/' + b.dataset.game : ''))));
@@ -762,6 +949,14 @@
   here = location.hash.slice(1) || 'home';  // 途中の画面を開き直したときは、その画面から始める
   render(here);
 
+  $$('.modebar button').forEach(b => b.addEventListener('click', () => setMode(b.dataset.mode)));
+  $$('.placebar button').forEach(b => b.addEventListener('click', () => setPlace(Number(b.dataset.place))));
+  $('#q').addEventListener('input', e => {
+    query = kana(e.target.value).split(/\s+/).filter(Boolean).map(variants);
+    shown = PAGE;
+    renderResults();
+    resetRoulette();
+  });
   $('#teiban-only').addEventListener('change', resetRoulette);
   $('#photo-only').addEventListener('change', resetRoulette);
   $('#filter-clear').addEventListener('click', clearFilters);
