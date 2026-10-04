@@ -189,13 +189,11 @@
   const MODES = ['any', 'cook', 'buy', 'out'];
   let mode = store.get('bangohan_mode', 'any');
   if (!MODES.includes(mode)) mode = 'any';
-  // 買って帰るときの場所（0＝どこでも、1＝コンビニ、2＝スーパー、4＝お弁当・持ち帰りの店。料理側は足し合わせた数で持つ）
+  // 買える場所の名前（料理側は、買える場所を足し合わせた数で持つ。1＝コンビニ、2＝スーパー、4＝お弁当・持ち帰りの店）
   const PLACES = { 1: 'コンビニ', 2: 'スーパー', 4: 'お弁当・持ち帰りの店' };
-  let place = Number(store.get('bangohan_place', 0));
-  if (!PLACES[place]) place = 0;
-  let epoch = 0;  // 手段や買う場所を変えるたびに1つ進める。回っている途中で変えたら、前の条件の結果は出さない
-  // その手段（と、買う場所）で提案できる料理か
-  const inMode = d => mode === 'any' || (mode === 'cook' ? d.cook : mode === 'buy' ? d.buy && (!place || (d.places & place) > 0) : d.out);
+  let epoch = 0;  // 手段を変えるたびに1つ進める。回っている途中で変えたら、前の条件の結果は出さない
+  // その手段で提案できる料理か
+  const inMode = d => mode === 'any' || (mode === 'cook' ? d.cook : mode === 'buy' ? d.buy : d.out);
   const daysAgo = dstr => Math.round((new Date(TODAY) - new Date(dstr)) / 86400000);
   const avoidSet = () => new Set(recent.filter(r => daysAgo(r.d) < AVOID_DAYS).map(r => r.n));
 
@@ -248,35 +246,19 @@
       h('figcaption', {}, p.ai ? '画像はAIで作成したイメージです'
         : h('a', { href: p.page, target: '_blank', rel: 'noopener', text: `写真：${p.by}／${p.lic}／Wikimedia Commons` })));
   }
-  const mapUrl = q => 'https://www.google.com/maps/search/' + encodeURIComponent(q);
-  // 料理が決まったあとの出口。手段を選んでいるときはその手段だけ、決めていないときは使える出口を全部出す
+  // 料理が決まったあとの出口。作るときは作り方の検索、買う・食べに行くときは「地図で探す」（サイトの中で地図が開く）
   function exits(d) {
     // 今の手段では提案できない料理を開いたときは、決めていないときと同じく使える出口を全部出す
     const any = mode === 'any' || !inMode(d), list = [];
-    const link = (href, text) => h('a', { class: 'btn', href, target: '_blank', rel: 'noopener', text });
-    if (d.cook && (any || mode === 'cook')) list.push(link(recipeUrl(d.name), any ? '作る：作り方を探す' : '作り方を探す'));
-    // 買うときの探し先は、その料理が買える場所に合わせる（持ち帰りの店で買えない料理を「持ち帰り」で探さない）
-    if (d.buy && any) list.push(d.places & 4 ? link(mapUrl(d.name + ' 持ち帰り'), '買う：持ち帰りの店を探す') : link(mapUrl('スーパー'), '買う：近くのスーパーを探す'));
-    else if (d.buy && mode === 'buy') {
-      const to = {
-        4: [mapUrl(d.name + ' 持ち帰り'), '持ち帰りできる店を地図で探す', '持ち帰りの店を探す'],
-        2: [mapUrl('スーパー'), '近くのスーパーを地図で探す', 'スーパーを探す'],
-        1: [mapUrl('コンビニ'), '近くのコンビニを地図で探す', 'コンビニを探す'],
-      };
-      // 場所を選んでいればその場所だけ、「どこでも」ならその料理が買える場所を全部（短い言葉で）
-      [4, 2, 1].filter(p => (d.places & p) && (!place || p === place)).forEach(p => list.push(link(to[p][0], to[p][place ? 1 : 2])));
-    }
-    if (d.out && (any || mode === 'out')) list.push(link(mapUrl(d.name), any ? '食べに行く：近くの店を探す' : '近くのお店を地図で探す'));
+    if (d.cook && (any || mode === 'cook')) list.push(h('a', { class: 'btn', href: recipeUrl(d.name), target: '_blank', rel: 'noopener', text: any ? '作る：作り方を探す' : '作り方を探す' }));
+    const buy = d.buy && (any || mode === 'buy'), out = d.out && (any || mode === 'out');
+    if (buy || out) list.push(h('button', { class: 'btn btn-map', type: 'button', onclick: () => openMap(d),
+      text: !any ? '地図で探す' : buy && out ? '買う・食べに行く：地図で探す' : buy ? '買う：地図で探す' : '食べに行く：地図で探す' }));
     return list;
   }
   // 料理名の下の一言。作るときは材料、買う・外食のときはどこで手に入るか
   function hint(d) {
-    if (mode === 'buy' && d.buy) {
-      if (place === 1 && (d.places & 1)) return 'コンビニで買える料理です';
-      if (place === 2 && (d.places & 2)) return 'スーパーのお惣菜・お弁当売り場で買える料理です';
-      if (place === 4 && (d.places & 4)) return 'お弁当屋や、持ち帰りのできる店で買える料理です';
-      return '買える場所：' + [1, 2, 4].filter(p => d.places & p).map(p => PLACES[p]).join('・');
-    }
+    if (mode === 'buy' && d.buy) return '買える場所：' + [1, 2, 4].filter(p => d.places & p).map(p => PLACES[p]).join('・');
     if (mode === 'out' && d.out) return d.shop ? `「${d.shop}」のお店などで食べられます` : '外食で食べられる料理です';
     return '主な材料：' + d.mats.join('・');
   }
@@ -547,7 +529,7 @@
   }
   function updatePoolNote() {
     const n = roulettePool().length;
-    const what = { any: '今の季節に合う主役の料理', cook: '家で作れる主役の料理', buy: (place ? PLACES[place] + 'で買える' : '買って帰れる') + '主役の料理', out: '外で食べられる主役の料理' }[mode];
+    const what = { any: '今の季節に合う主役の料理', cook: '家で作れる主役の料理', buy: '買って帰れる主役の料理', out: '外で食べられる主役の料理' }[mode];
     $('#roulette-pool').textContent = hasFilter() ? `「さがす」で絞った${n}件から選びます` : `${what}${n}件から選びます`;
     $('#roulette-go').disabled = n === 0 || wheelBusy;
   }
@@ -642,7 +624,7 @@
       $(`[data-hold="${i}"]`).disabled = empty;
       if (empty) { none.push(kubun); win.firstElementChild.replaceChildren(h('div', { class: 'cell' }, h('span', { class: 'cell-none', text: 'なし' }))); }
     });
-    const what = mode === 'buy' ? (place ? PLACES[place] + 'で買える' : '買って帰れる') : mode === 'out' ? '外で食べられる' : '今の季節に合う';
+    const what = mode === 'buy' ? '買って帰れる' : mode === 'out' ? '外で食べられる' : '今の季節に合う';
     const note = $('#slot-none');
     note.hidden = none.length === 0;
     note.textContent = none.length === REELS.length ? `${what}料理の候補がありません。`
@@ -768,7 +750,7 @@
       let pool = D.filter(d => ok(d) && d.teiban && MAIN_KUBUN.includes(d.kubun));
       if (pool.length < 3) pool = D.filter(d => ok(d) && d.teiban);
       if (pool.length < 3) pool = D.filter(ok);
-      // 手段や買う場所によっては、その色の料理が1品も無い。そのときは色にこだわらず、主役の料理から選ぶ
+      // 手段によっては、その色の料理が1品も無いことがある。そのときは色にこだわらず、主役の料理から選ぶ
       const noColor = pool.length === 0;
       if (noColor) pool = D.filter(d => inMode(d) && inSeason(d) && MAIN_KUBUN.includes(d.kubun));
       if (!pool.length) pool = D.filter(inMode);
@@ -864,6 +846,205 @@
     openModal(...kids);
   }
 
+  // ---------- 地図で探す ----------
+  // Google マップをページの中に出し、「探す言葉＋場所の言葉」を渡して、その近くの店に絞る。
+  // 場所は町名・駅名の言葉で渡す（緯度経度で渡すと、地図は動いても店の印が Google の推定した場所の近くに出てしまうため）
+  // 買うときに選べるお店の種類（bit＝料理データの「買える場所」の数、q＝地図に渡す言葉）
+  const MAP_BUY = [
+    { id: 'cvs', bit: 1, label: 'コンビニ', q: 'コンビニ' },
+    { id: 'sup', bit: 2, label: 'スーパー', q: 'スーパーマーケット' },
+    { id: 'depa', bit: 0, label: 'デパ地下', q: 'デパ地下' },
+    { id: 'take', bit: 4, label: 'お弁当・持ち帰りの店', q: 'お弁当 持ち帰り' },
+  ];
+  // お店の種類 → [ボタンの言葉, 地図に渡す言葉]
+  const MAP_SHOP = {
+    '定食・和食': ['定食・和食の店', '定食 和食'], '寿司': ['寿司の店', '寿司'], 'うどん・そば': ['うどん・そばの店', 'うどん そば'], 'ラーメン': ['ラーメンの店', 'ラーメン'],
+    '中華': ['中華料理の店', '中華料理'], '焼肉': ['焼肉の店', '焼肉'], '韓国料理': ['韓国料理の店', '韓国料理'], '洋食・ファミレス': ['洋食の店・ファミレス', '洋食 ファミレス'],
+    'イタリアン': ['イタリアンの店', 'イタリアン'], 'カレー': ['カレーの店', 'カレー'], 'とんかつ・揚げ物': ['とんかつ・揚げ物の店', 'とんかつ'], '鍋': ['鍋料理の店', '鍋料理'],
+    '居酒屋': ['居酒屋', '居酒屋'], 'お好み焼き・粉もの': ['お好み焼きの店', 'お好み焼き'], 'エスニック': ['エスニック料理の店', 'エスニック料理'], '郷土料理の店': ['郷土料理の店', '郷土料理'],
+  };
+  const MAP_MAX = 40;            // キーワード・場所の言葉の長さの上限（地図のURLが長くなりすぎないように）
+  const FRESH_MS = 30 * 60000;   // 現在地を確かめてからこの時間は「現在地」として表示する。過ぎたら「前回の現在地」
+  const LOC_RETRY_MS = 15000;    // 現在地の確認が返ってこないとき、この時間が過ぎたら押し直せるようにする
+  const LOAD_MS = 15000;         // 地図の読み込みをこの時間待っても出ないときは、案内を出す
+  let mapArea = String(store.get('bangohan_area', '') || '').slice(0, MAP_MAX);  // 場所の言葉（駅名・地名・現在地の町名）。次に開いたときのために、この端末にだけ残す
+  let areaGeo = !!mapArea && store.get('bangohan_geo', 0) === 1;  // 場所の言葉が、現在地から調べた町名か（保存は次に開いたときのため）
+  let mapItems = [], mapSel = '', mapWord = '';
+  let locGen = 0, locStart = 0, locNext = 0;       // 現在地：何回目の確認か／確認を始めた時刻（0＝していない）／町名の検索を次にしてよい時刻
+  let lastSpot = '', lastName = '', freshAt = 0;   // 最後に町名を調べた位置・その町名・現在地を確かめた時刻
+  let mapOpener = null, mapClosing = false, mapTimer = 0, closeTimer = 0, mapInert = [], noteKind = '';
+
+  const isFresh = () => freshAt > 0 && Date.now() - freshAt < FRESH_MS;
+  // 現在地や読み込みについてのお知らせ（地図の説明の文とは別の行に出す）
+  function note(msg, kind) {
+    const n = $('#map-note');
+    n.textContent = msg || '';
+    noteKind = msg ? (kind || 'geo') : '';
+  }
+  // 地図が画面の外にあるときは、見える位置まで送る
+  function showMap() {
+    const body = $('.map-body'), fr = $('#map-frame');
+    const bottom = fr.offsetTop + fr.offsetHeight - body.clientHeight;
+    if (body.scrollTop < bottom) body.scrollTop = bottom;
+  }
+
+  function openMap(d) {
+    if (!$('#mapbox').hidden) return;  // すでに開いている（キーボードで続けて押したときなど）
+    const any = mode === 'any' || !inMode(d);
+    const buy = d.buy && (any || mode === 'buy'), out = d.out && (any || mode === 'out');
+    mapItems = [];
+    if (out) {
+      mapItems.push({ id: 'dish', label: `「${d.name}」の店`, q: d.name });
+      // 料理名と同じ言葉になる種類（ラーメンなど）は重ねて出さない
+      if (MAP_SHOP[d.shop] && MAP_SHOP[d.shop][1] !== d.name) mapItems.push({ id: 'shop', label: MAP_SHOP[d.shop][0], q: MAP_SHOP[d.shop][1] });
+    }
+    // 持ち帰りの店で買える料理は、その料理を持ち帰れる店を探す。それ以外は、お弁当や持ち帰りの店を広く探す
+    if (buy) mapItems.push(...MAP_BUY.map(m => m.id === 'take' && (d.places & 4) ? Object.assign({}, m, { q: d.name + ' 持ち帰り' }) : m));
+    if (!mapItems.length) return;  // 今の手段では地図で探せない料理（手段を変える前のカードが残っていた場合）
+    // 最初に選んでおく種類：食べに行ける料理は料理名、買う料理はスーパー（買える料理は、どれもスーパーで買える扱い）
+    mapSel = out ? 'dish' : 'sup';
+    mapWord = '';
+    $('#map-title').textContent = `「${d.name}」を地図で探す`;
+    const marks = [1, 2, 4].filter(p => d.places & p).map(p => PLACES[p]);
+    $('#map-hint').hidden = !(buy && marks.length);
+    $('#map-hint').textContent = '買える場所の目安：' + marks.join('・');
+    $('#map-chips').replaceChildren(
+      ...mapItems.map(m => h('button', { class: 'pick', type: 'button', 'data-id': m.id, 'aria-pressed': 'false', text: m.label,
+        onclick: () => { mapSel = m.id; mapWord = ''; $('#map-q').value = ''; $('#map-word').hidden = true; drawMap(); showMap(); } })),
+      // 「キーワード」を押すと、言葉を入れる欄が出る
+      h('button', { class: 'pick', type: 'button', id: 'map-word-chip', 'aria-pressed': 'false', 'aria-expanded': 'false', 'aria-controls': 'map-word', text: 'キーワード',
+        onclick: () => { $('#map-word').hidden = false; drawMap(); $('#map-q').focus(); } }));
+    $('#map-word').hidden = true;
+    $('#map-q').value = '';
+    $('#map-q').placeholder = `例：${d.name}`;
+    $('#map-place').value = mapArea;
+    $('#map-about').hidden = true;
+    $('#map-about-btn').setAttribute('aria-expanded', 'false');
+    note('');
+    mapClosing = false;
+    mapOpener = document.activeElement;
+    $('#mapbox').hidden = false;
+    // 開いている間は、裏の画面を操作できないようにする（閉じるときに戻す）
+    mapInert = [...document.body.children].filter(el => el.id !== 'mapbox' && el.id !== 'toast' && el.tagName !== 'SCRIPT' && !el.inert);
+    mapInert.forEach(el => { el.inert = true; });
+    history.pushState({ map: true }, '');  // スマホの「戻る」で、地図だけを閉じられるようにする
+    drawMap();
+    $('.map-body').scrollTop = 0;
+    const chips = $('#map-chips'), on = $('#map-chips .pick[aria-pressed="true"]');
+    chips.scrollLeft = on ? on.offsetLeft - chips.offsetLeft - 14 : 0;
+    $('#map-title').focus();
+  }
+  function drawMap() {
+    const it = mapItems.find(m => m.id === mapSel) || mapItems[0];
+    const q = mapWord || it.q;
+    const full = mapArea ? q + ' ' + mapArea : q;
+    const fromGeo = !!mapArea && areaGeo;                             // 場所の言葉が、現在地から調べた町名か
+    const here = fromGeo && isFresh();                                  // そのうち、いま確かめたばかりのものか
+    $$('#map-chips .pick[data-id]').forEach(b => b.setAttribute('aria-pressed', String(!mapWord && b.dataset.id === it.id)));
+    $('#map-word-chip').setAttribute('aria-pressed', String(!!mapWord));
+    $('#map-word-chip').setAttribute('aria-expanded', String(!$('#map-word').hidden));
+    $('#map-here').setAttribute('aria-pressed', String(here));
+    $('#map-status').textContent = mapArea ? `${here ? '現在地の町名' : fromGeo ? '前回の現在地の町名' : ''}「${mapArea}」の近くの「${q}」を表示しています。`
+      : `「${q}」を表示しています。場所は Google マップが選んだものです。「現在地」を押すか、駅名・地名を入れると、その近くに絞れます。`;
+    $('#map-osm').hidden = !fromGeo;  // 町名を調べた出典は、その町名を出しているときに並べて出す
+    const src = 'https://www.google.com/maps?output=embed&hl=ja&q=' + encodeURIComponent(full);
+    $('#map-open').href = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(full);
+    const box = $('#map-frame');
+    if (box.dataset.src === src) return;
+    box.dataset.src = src;
+    box.classList.add('is-loading');
+    if (noteKind === 'load') note('');
+    clearTimeout(mapTimer);
+    // 読み込みが終わらないときは、別の開き方を案内する（読み込みの失敗そのものは、この画面からは分からない）
+    mapTimer = setTimeout(() => {
+      if (!box.classList.contains('is-loading') || noteKind) return;  // ほかのお知らせが出ているときは、読み込み中の表示のままにする
+      box.classList.remove('is-loading');
+      note('地図の読み込みに時間がかかっています。出ないときは、地図の下の「Google マップで開く」をお使いください。', 'load');
+    }, LOAD_MS);
+    // 枠ごと作り直す（中身だけ差し替えると、ブラウザの「戻る」の履歴に地図の切り替えが積まれてしまう）
+    box.replaceChildren(h('iframe', { src, title: `${q}の地図`, referrerpolicy: 'strict-origin-when-cross-origin', allowfullscreen: '',
+      onload: () => { box.classList.remove('is-loading'); if (noteKind === 'load') note(''); } }));
+  }
+  // 位置から調べた住所を、地図に渡す町名の言葉にまとめる（都道府県＋郡＋市町村＋区＋町名）
+  function areaName(a) {
+    if (!a || typeof a !== 'object') return '';
+    const pref = a.province || a.state || (a['ISO3166-2-lvl4'] === 'JP-13' ? '東京都' : '');
+    // 町名は、丁目つきの名前（新宿三丁目など）を優先。大字と小字が別の名前のときは、広く知られている大字を使う
+    const local = a.quarter && !String(a.neighbourhood || '').startsWith(a.quarter) ? a.quarter : (a.neighbourhood || a.quarter || '');
+    return [pref, a.county, a.city || a.town || a.village || a.municipality, a.city_district || a.suburb, local]
+      .filter(x => typeof x === 'string' && x).join('').slice(0, MAP_MAX);
+  }
+  // 現在地を使う。「現在地」を押したときにだけ動く（ブラウザが許可を確認する）
+  function locate() {
+    if (locStart && Date.now() - locStart < LOC_RETRY_MS) { note('現在地を確認しています…（位置情報の許可を聞かれていたら、答えてください）'); return; }
+    if (!navigator.geolocation) { note('この端末では現在地を使えません。駅名・地名を入れると、その近くで探せます。'); return; }
+    const gen = ++locGen;  // 途中で場所を入れた・地図を閉じた・押し直したときは番号が進むので、古い結果は捨てる
+    locStart = Date.now();
+    note('現在地を確認しています…');
+    const end = msg => { locStart = 0; note(msg); };
+    navigator.geolocation.getCurrentPosition(p => {
+      if (gen !== locGen) return;
+      // 位置は小数3けた（約100メートル単位）に丸めてから、町名を調べる
+      const spot = p.coords.latitude.toFixed(3) + ',' + p.coords.longitude.toFixed(3);
+      const done = name => {
+        if (gen !== locGen) return;
+        if (!name) { end('現在地の町名を調べられませんでした。駅名・地名を入れると、その近くで探せます。'); return; }
+        lastSpot = spot; lastName = name; freshAt = Date.now();
+        mapArea = name;
+        areaGeo = true;
+        store.set('bangohan_area', name); store.set('bangohan_geo', 1);
+        $('#map-place').value = name;
+        end('');
+        drawMap();
+        // 文字を打っている最中（キーワードの欄など）は、画面を送らない
+        if (!/^(INPUT|TEXTAREA)$/.test((document.activeElement || {}).tagName || '')) showMap();
+      };
+      if (spot === lastSpot && lastName) { done(lastName); return; }  // 同じ場所なら、町名を調べ直さない
+      // 町名の検索は続けて呼ばない（提供元の決まり：毎秒1回まで。断られたあとは長めに待つ）
+      if (Date.now() < locNext) { end('少し待ってから、もう一度「現在地」を押してください。'); return; }
+      locNext = Date.now() + 3000;
+      const ctl = typeof AbortController === 'function' ? new AbortController() : null;
+      const timer = setTimeout(() => { if (ctl) ctl.abort(); }, 10000);
+      const [lat, lon] = spot.split(',');
+      fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=16&accept-language=ja&lat=${lat}&lon=${lon}`, ctl ? { signal: ctl.signal } : undefined)
+        .then(r => {
+          if (r.status === 429) locNext = Date.now() + 60000;
+          return r.ok ? r.json() : Promise.reject(new Error(String(r.status)));
+        })
+        .then(j => done(areaName(j && j.address)))
+        .catch(() => done(''))
+        .then(() => clearTimeout(timer));
+    }, err => {
+      if (gen !== locGen) return;
+      end(err && err.code === 1 ? '現在地の利用が許可されていません。駅名・地名を入れると、その近くで探せます。' : '現在地を確認できませんでした。駅名・地名を入れると、その近くで探せます。');
+    }, { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 });
+  }
+  function hideMap() {
+    if ($('#mapbox').hidden) return;
+    $('#mapbox').hidden = true;
+    mapClosing = false;
+    clearTimeout(mapTimer);
+    clearTimeout(closeTimer);
+    locGen++; locStart = 0;  // 確認の途中だった現在地の結果は使わない
+    const box = $('#map-frame');
+    box.replaceChildren();
+    box.classList.remove('is-loading');
+    delete box.dataset.src;
+    mapInert.forEach(el => { el.inert = false; });
+    mapInert = [];
+    if (mapOpener && document.contains(mapOpener)) mapOpener.focus();  // 開いたときのボタンに戻す
+    mapOpener = null;
+  }
+  function closeMap() {
+    if (mapClosing) return;  // 閉じている途中にもう一度押されても、履歴を二重に戻さない
+    if (history.state && history.state.map) {
+      // 履歴に積んだ分を戻す（戻ると hideMap が呼ばれる）。戻りの合図が届かないときに備えて、少し待っても開いていたら直接閉じる
+      mapClosing = true;
+      history.back();
+      closeTimer = setTimeout(hideMap, 700);
+    } else hideMap();
+  }
+
   let toastTimer;
   function toast(msg) {
     const t = $('#toast');
@@ -879,16 +1060,10 @@
     store.set('bangohan_mode', mode);
     refresh();
   }
-  function setPlace(p) {
-    place = PLACES[p] ? Number(p) : 0;
-    store.set('bangohan_place', place);
-    refresh();
-  }
-  // 手段や買う場所が変わったら、画面全体をその条件に合わせ直す
+  // 手段が変わったら、画面全体をその条件に合わせ直す
   function refresh() {
     document.body.dataset.mode = mode;
     $$('.modebar button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === mode)));
-    $$('.placebar button').forEach(b => b.setAttribute('aria-pressed', String(Number(b.dataset.place) === place)));
     // その手段で使わない条件は外す（画面から隠れた条件が効いたままにならないように）
     if (mode === 'buy' || mode === 'out') { F.mats.clear(); $$('#f-mats .pick').forEach(b => b.setAttribute('aria-pressed', 'false')); }
     if (mode !== 'out') { F.shop.clear(); $$('#f-shop .pick').forEach(b => b.setAttribute('aria-pressed', 'false')); }
@@ -929,7 +1104,6 @@
 
   document.body.dataset.mode = mode;
   $$('.modebar button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === mode)));
-  $$('.placebar button').forEach(b => b.setAttribute('aria-pressed', String(Number(b.dataset.place) === place)));
   renderHome();
   renderRecent();
   buildFilters();
@@ -946,11 +1120,12 @@
   $$('.seg button').forEach(b => b.addEventListener('click', () => go('play/' + b.dataset.game)));
   $('#back').addEventListener('click', goBack);
   window.addEventListener('hashchange', route);
+  // 地図を開いたまま読み込み直したときは、履歴に残った地図の分を1つ戻す（「戻る」が1回空振りしないように）
+  if (history.state && history.state.map) history.back();
   here = location.hash.slice(1) || 'home';  // 途中の画面を開き直したときは、その画面から始める
   render(here);
 
   $$('.modebar button').forEach(b => b.addEventListener('click', () => setMode(b.dataset.mode)));
-  $$('.placebar button').forEach(b => b.addEventListener('click', () => setPlace(Number(b.dataset.place))));
   $('#q').addEventListener('input', e => {
     query = kana(e.target.value).split(/\s+/).filter(Boolean).map(variants);
     shown = PAGE;
@@ -974,5 +1149,38 @@
   $('#duel-go').addEventListener('click', startDuel);
   $('#recent-clear').addEventListener('click', () => { recent = []; store.set('bangohan_recent', recent); renderRecent(); });
   $$('[data-close]').forEach(b => b.addEventListener('click', closeModal));
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+  $$('[data-map-close]').forEach(b => b.addEventListener('click', closeMap));
+  window.addEventListener('popstate', () => {
+    if (!$('#mapbox').hidden) hideMap();
+    else if (history.state && history.state.map) history.back();  // 閉じたあとに「進む」で地図の履歴へ入ったときは、そのまま戻す
+  });
+  $('#map-here').addEventListener('click', locate);
+  $('#map-word').addEventListener('submit', e => {
+    e.preventDefault();
+    mapWord = $('#map-q').value.trim().slice(0, MAP_MAX);
+    drawMap();
+    e.currentTarget.querySelector('[type="submit"]').focus();  // 画面のキーボードを下げる（フォーカスは枠の中に残す）
+    showMap();
+  });
+  $('#map-area').addEventListener('submit', e => {
+    e.preventDefault();
+    locGen++; locStart = 0; freshAt = 0;  // 自分で場所を入れたら、確認の途中だった現在地の結果は使わない
+    note('');
+    mapArea = $('#map-place').value.trim().slice(0, MAP_MAX);
+    areaGeo = false;
+    store.set('bangohan_area', mapArea); store.set('bangohan_geo', 0);
+    drawMap();
+    e.currentTarget.querySelector('[type="submit"]').focus();
+    showMap();
+  });
+  // 現在地の確認中に場所を打ち始めたら、確認の結果は使わない（打っている文字を上書きしない）
+  $('#map-place').addEventListener('input', () => { if (locStart) { locGen++; locStart = 0; note(''); } });
+  $('#map-about-btn').addEventListener('click', e => {
+    const box = $('#map-about');
+    box.hidden = !box.hidden;
+    e.currentTarget.setAttribute('aria-expanded', String(!box.hidden));
+    if (!box.hidden) box.scrollIntoView({ block: 'nearest' });
+  });
+  // Esc は、地図が開いていれば地図だけを閉じる
+  document.addEventListener('keydown', e => { if (e.key !== 'Escape') return; if (!$('#mapbox').hidden) closeMap(); else closeModal(); });
 })();

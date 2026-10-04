@@ -20,13 +20,6 @@
     <button type="button" data-mode="buy" aria-pressed="false">買って帰る</button>
     <button type="button" data-mode="out" aria-pressed="false">外で食べる</button>
   </div>
-  <div class="placebar only-buy" role="group" aria-label="どこで買う？">
-    <span class="modebar-title">どこで買う？</span>
-    <button type="button" data-place="0" aria-pressed="true">どこでも</button>
-    <button type="button" data-place="1" aria-pressed="false">コンビニ</button>
-    <button type="button" data-place="2" aria-pressed="false">スーパー</button>
-    <button type="button" data-place="4" aria-pressed="false">お弁当・持ち帰りの店</button>
-  </div>
 </header>
 
 <main>
@@ -195,6 +188,42 @@
   <div class="modal-box" role="dialog" aria-modal="true">
     <button type="button" class="modal-x" data-close aria-label="閉じる">×</button>
     <div id="modal-body"></div>
+  </div>
+</div>
+<div id="mapbox" class="modal modal-map" hidden>
+  <div class="modal-back" data-map-close></div>
+  <div class="modal-box map-box" role="dialog" aria-modal="true" aria-labelledby="map-title">
+    <div class="map-head">
+      <h2 id="map-title" class="map-title" tabindex="-1"></h2>
+      <button type="button" class="modal-x" data-map-close aria-label="地図を閉じる">×</button>
+    </div>
+    <div class="map-body">
+      <div id="map-chips" class="map-chips" role="group" aria-label="探すお店の種類"></div>
+      <p id="map-hint" class="note" hidden></p>
+      <form id="map-word" class="map-row" hidden>
+        <label for="map-q">キーワード</label>
+        <input id="map-q" type="search" enterkeyhint="search" autocomplete="off" maxlength="40">
+        <button type="submit" class="btn btn-small">探す</button>
+      </form>
+      <form id="map-area" class="map-row">
+        <label for="map-place">場所</label>
+        <button type="button" id="map-here" class="pick" aria-pressed="false">現在地</button>
+        <input id="map-place" type="search" enterkeyhint="search" autocomplete="off" maxlength="40" placeholder="駅名・地名">
+        <button type="submit" class="btn btn-small">決定</button>
+      </form>
+      <p id="map-note" class="note map-note" role="status"></p>
+      <p class="note map-status"><span id="map-status" aria-live="polite"></span> <span id="map-osm" hidden>町名の検索：© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors</span></p>
+      <div id="map-frame" class="map-frame"></div>
+      <div class="note map-foot">
+        <a id="map-open" href="#" target="_blank" rel="noopener">出ないときは Google マップで開く</a>
+        <button type="button" id="map-about-btn" class="link" aria-expanded="false" aria-controls="map-about">この地図について</button>
+      </div>
+      <div id="map-about" class="note map-about" hidden>
+        <p>地図は Google マップです。「現在地」は、押したときだけ使います。位置（約100メートル単位に丸めたもの）を町名に直すために OpenStreetMap の検索へ送り、その町名と探す言葉を Google へ送ります。このサイトには送られません。</p>
+        <p>調べた町名や、入れた場所の言葉は、次に開いたときのためにこの端末にだけ残ります（場所を空にして「決定」を押すと消えます）。</p>
+        <p>地図に出るのは、その種類の店や、言葉に合う店です。その料理を扱っているかは、行く前にご確認ください。</p>
+      </div>
+    </div>
   </div>
 </div>
 <div id="toast" class="toast" hidden></div>

@@ -525,17 +525,67 @@ body[data-mode="out"] .seg { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 .qbox input:focus { outline: 2px solid var(--accent); border-color: var(--accent); }
 
-/* ---------- どこで買う？（買って帰るのときだけ出す） ---------- */
-body:not([data-mode="buy"]) .only-buy { display: none; }
-.placebar { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px; margin-top: 10px; }
-.placebar button {
-  min-height: 38px; padding: 4px 13px; background: #fff; border: 1.5px solid var(--line); border-radius: 999px;
-  font-size: .86rem; font-weight: 700;
-}
-.placebar button:hover { border-color: var(--accent); }
-.placebar button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
-
 /* ---------- 献立スロット：その手段で候補が無い列 ---------- */
 .cell-none { font-size: .95rem; font-weight: 700; color: var(--sub); }
 .reelwin.is-none { background: #f1e9dc; border-style: dashed; }
 .hold:disabled { opacity: .45; cursor: default; }
+
+/* ---------- 地図で探す ---------- */
+.modal-map { z-index: 45; }
+/* 画面いっぱいに近い高さで開く。見出しと×は動かさず、その下だけをスクロールさせる */
+.map-box { display: flex; flex-direction: column; height: 94vh; height: 94dvh; max-height: none; padding: 0; overflow: hidden; }
+.map-head { flex: none; padding: 14px 56px 8px 14px; }
+.map-title { margin: 0; font-size: 1.05rem; line-height: 1.4; }
+.map-title:focus { outline: none; }
+.map-body {
+  position: relative; flex: 1 1 auto; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  display: flex; flex-direction: column; gap: 8px; padding: 0 14px 12px;
+}
+.map-body > * { flex-shrink: 0; }
+.map-box .note { margin: 0; font-size: .8rem; line-height: 1.5; }
+.map-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.map-chips .pick, #map-here { min-height: 44px; font-weight: 700; }
+.map-chips .pick { padding: 4px 12px; font-size: .9rem; }
+#map-here { flex: none; padding-left: 12px; padding-right: 12px; }
+.map-row { display: flex; align-items: center; gap: 6px; }
+.map-row[hidden] { display: none; }
+.map-row label { flex: none; font-size: .84rem; font-weight: 700; color: var(--sub); }
+.map-row input {
+  flex: 1 1 auto; width: 0; min-width: 0; min-height: 44px; padding: 4px 12px; font: inherit; font-size: 1rem;
+  background: #fff; color: var(--ink); border: 1.5px solid var(--line); border-radius: 12px;
+}
+.map-row input:focus { outline: 2px solid var(--accent); border-color: var(--accent); }
+.map-row .btn-small { flex: none; min-height: 44px; }
+.map-box .map-note { color: var(--accent-dark); font-weight: 700; }
+.map-box .map-note:empty { height: 0; margin-top: -8px; }  /* 空のときは場所を取らない（行そのものは置いたままにする） */
+.map-box .map-status { color: var(--ink); }
+#map-osm { color: var(--sub); }
+.map-frame { position: relative; flex: 1 0 240px; min-height: 240px; background: #eee7dc; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.map-frame iframe { display: block; position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.map-frame.is-loading::after {
+  content: '地図を読み込んでいます…'; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  padding: 4px 12px; background: rgba(58, 42, 30, .82); color: #fff; border-radius: 999px; font-size: .82rem; white-space: nowrap; pointer-events: none;
+}
+.map-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0 12px; }
+.map-foot #map-open { display: inline-block; padding: 10px 0; font-weight: 700; }
+.map-foot .link { padding: 10px 2px; font-size: .8rem; }
+.map-about p { margin: 0 0 6px; }
+.btn-map { border-color: var(--accent); color: var(--accent-dark); font-weight: 700; }
+/* 幅の狭い画面では「場所」の見出しを隠して、入力欄を広く取る（読み上げには残す） */
+@media (max-width: 400px) {
+  #map-area label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+}
+/* 高さの低い画面（小さいスマホ・横向き）では、種類のボタンを横に送る1段にして、地図の場所を空ける */
+@media (max-height: 600px) {
+  .map-chips { flex-wrap: nowrap; overflow-x: auto; margin: 0 -14px; padding: 0 14px 2px; }
+  .map-chips .pick { flex: none; }
+  .map-frame { flex-basis: 200px; min-height: 200px; }
+}
+@media (min-width: 640px) {
+  .map-box { width: min(820px, 94vw); max-width: none; height: 90vh; height: 90dvh; }
+  .map-head { padding: 18px 60px 8px 20px; }
+  .map-body { padding: 0 20px 16px; }
+}
+@media (min-width: 640px) and (max-height: 600px) {
+  .map-chips { margin: 0 -20px; padding: 0 20px 2px; }
+}
