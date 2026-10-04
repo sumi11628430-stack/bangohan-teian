@@ -636,7 +636,7 @@ body.art-top .top-view { background: #c9a273 url(art/top_wide.webp) center / cov
   @keyframes top-in { from { opacity: 0; transform: translateY(14px) scale(.98); } }
 }
 .top-title:focus { outline: none; }
-/* 高さの低い画面（スマホの横向きなど）では余白を詰めて、「画像はAIで作成」の注記まで画面に収める */
+/* 高さの低い画面（スマホの横向きなど）では余白を詰めて、「画像はイメージです」の注記まで画面に収める */
 @media (max-height: 380px) {
   .top-view { padding: 10px 16px; gap: 8px; }
   .top-card { padding: 12px 18px 8px; }

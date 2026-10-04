@@ -124,8 +124,8 @@ def make_ogp(dishes, rng):
     text_center(d, w / 2, 190, "今夜のごはん、30秒で決めよう", f(34), ACCENT)
     text_center(d, w / 2, 250, "毎日の晩御飯の提案", f(84), INK)
     text_center(d, w / 2, 372, "家で作る ・ 買って帰る ・ 外で食べる", f(34), SUB)
-    # 料理の画像はAIで作ったものなので、右下に小さく書く
-    note, nf = "料理の画像はAIで作成したイメージです", f(18)
+    # 料理の画像は実物の写真ではないので、右下に小さく書く
+    note, nf = "画像はイメージです", f(18)
     nw = d.textlength(note, font=nf)
     tag = Image.new("RGBA", (w, h), (0, 0, 0, 0))
     ImageDraw.Draw(tag).rounded_rectangle((w - nw - 34, h - 40, w - 10, h - 10), 15, fill=(40, 25, 15, 170))

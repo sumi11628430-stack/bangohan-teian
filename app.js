@@ -243,7 +243,7 @@
     if (!p) return null;
     return h('figure', { class: 'hero' },
       h('img', { src: p.src, alt: d.name + (p.ai ? 'のイメージ画像' : 'の写真'), loading: 'lazy' }),
-      h('figcaption', {}, p.ai ? '画像はAIで作成したイメージです'
+      h('figcaption', {}, p.ai ? '画像はイメージです'
         : h('a', { href: p.page, target: '_blank', rel: 'noopener', text: `写真：${p.by}／${p.lic}／Wikimedia Commons` })));
   }
   // 料理が決まったあとの出口。作るときは作り方の検索、買う・食べに行くときは「地図で探す」（サイトの中で地図が開く）
