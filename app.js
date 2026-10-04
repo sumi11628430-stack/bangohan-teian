@@ -292,8 +292,20 @@
   }
 
   // ---------- 画面の切り替え ----------
+  // ページの背景：ページを切り替えるたびに、用意した絵からランダムに選ぶ（直前と同じ絵は続けて選ばない）
+  const BGS = ['today', 'search', 'play', 'fortune', 'table'].filter(n => ART['page_' + n]);
+  let lastView = '', bgFlip = 0;
+  function pickBg() {
+    const rest = BGS.filter(b => b !== document.body.dataset.bg);
+    if (!rest.length) return;
+    document.body.dataset.bg = rest[Math.floor(Math.random() * rest.length)];
+    document.body.dataset.bgflip = String(bgFlip ^= 1);  // 絵が替わるたびに、ふわっと出す動きをやり直すための目印
+  }
   function show(view) {
+    if (view !== 'top' && view !== lastView) pickBg();
+    lastView = view;
     $$('.view').forEach(v => v.classList.toggle('is-active', v.id === 'view-' + view));
+    document.body.dataset.view = view;  // ページごとの背景と、トップ画面での見出し・下のメニューの出し分けに使う
     $$('.tabbar button').forEach(b => b.setAttribute('aria-current', b.dataset.view === view ? 'page' : 'false'));
     if (view === 'play') updatePoolNote();
     window.scrollTo(0, 0);
@@ -304,16 +316,20 @@
   }
 
   // 画面の行き来。ブラウザの「戻る」でも、画面左上の「戻る」ボタンでも、前の画面に戻れるようにする
-  const VIEWS = ['home', 'search', 'play', 'fortune'], GAMES = ['roulette', 'slot', 'duel'];
+  // top＝トップ画面（入口）。URLに行き先が無いときは、ここから始める
+  const VIEWS = ['top', 'home', 'search', 'play', 'fortune'], GAMES = ['roulette', 'slot', 'duel'];
   const trail = [];   // 通ってきた画面
-  let here = 'home';
+  let here = 'top';
   function render(place) {
     const [view, game] = place.split('/');
-    show(VIEWS.includes(view) ? view : 'home');
+    const held = document.activeElement;
+    show(VIEWS.includes(view) ? view : 'top');
     if (GAMES.includes(game)) showGame(game);
     // 外で食べるときは献立スロットを出さない（戻るや保存したURLで来ても、ルーレットを見せる）
     if (mode === 'out' && $('#game-slot').classList.contains('is-active')) showGame('roulette');
-    $('#back').hidden = here === 'home';
+    $('#back').hidden = here === 'top';
+    // 押したボタンやリンクが切り替えで隠れたときは、新しい画面の見出しにフォーカスを移す（キーボード・読み上げで迷子にならないように）
+    if (held && held !== document.body && !held.getClientRects().length) $(document.body.dataset.view === 'top' ? '.top-title' : '.home-link').focus({ preventScroll: true });
   }
   function go(place) {
     if (place !== here) {
@@ -324,14 +340,14 @@
     render(place);
   }
   function route() {  // ブラウザの戻る・進むで来たとき
-    const place = location.hash.slice(1) || 'home';
+    const place = location.hash.slice(1) || 'top';
     if (place === here) return;
     if (trail.length && trail[trail.length - 1] === place) trail.pop(); else trail.push(here);
     here = place;
     render(place);
   }
   function goBack() {
-    if (trail.length) history.back(); else go('home');
+    if (trail.length) history.back(); else go('top');
   }
 
   // 画面が縦に並ぶ幅（スマホなど）では、結果が出たらそこまで画面を送る
@@ -1122,10 +1138,19 @@
   window.addEventListener('hashchange', route);
   // 地図を開いたまま読み込み直したときは、履歴に残った地図の分を1つ戻す（「戻る」が1回空振りしないように）
   if (history.state && history.state.map) history.back();
-  here = location.hash.slice(1) || 'home';  // 途中の画面を開き直したときは、その画面から始める
+  here = location.hash.slice(1) || 'top';  // 途中の画面を開き直したときは、その画面から始める。行き先が無ければトップ画面
   render(here);
 
   $$('.modebar button').forEach(b => b.addEventListener('click', () => setMode(b.dataset.mode)));
+  // トップ画面：ボタンを押したら「今日」の画面へ（手段は、次の画面の「今夜はどうする？」で選ぶ）
+  $('#top-go').addEventListener('click', () => go('home'));
+  // 背景の絵は、開いて少ししてから先に読み込んでおく（切り替えたときに、絵が遅れて出ないように）
+  setTimeout(() => BGS.forEach(n => { new Image().src = 'art/page_' + n + '.webp'; }), 1500);
+  $('.home-link').addEventListener('click', e => {
+    if (e.button || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;  // 新しいタブで開く操作などは、ブラウザに任せる
+    e.preventDefault();
+    go('top');
+  });
   $('#q').addEventListener('input', e => {
     query = kana(e.target.value).split(/\s+/).filter(Boolean).map(variants);
     shown = PAGE;

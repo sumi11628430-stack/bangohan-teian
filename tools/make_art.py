@@ -29,14 +29,14 @@ def square_crop(img, box, margin=1.04):
     return img.crop((round(cx - half), round(cy - half), round(cx + half), round(cy + half)))
 
 
-def background(name, width):
+def background(name, width, quality=82):
     path = os.path.join(SRC, name + ".png")
     if not os.path.exists(path):
         return
     img = Image.open(path).convert("RGB")
     if img.width > width:
         img = img.resize((width, round(img.height * width / img.width)), Image.LANCZOS)
-    save(img, name)
+    save(img, name, quality)
     flags[name] = True
 
 
@@ -44,6 +44,18 @@ background("roulette_stage", 1024)
 background("slot_marquee", 1200)
 background("duel_bg", 1200)
 background("fortune_bg", 1200)
+# ページの背景（うすい柄）。画面いっぱいに敷くので大きめのまま、軽めに書き出す
+for page in ("page_today", "page_search", "page_play", "page_fortune"):
+    background(page, 1400, quality=62)
+# 木のテーブルの写真も、ページの背景に使う（名前を page_table にそろえる）
+if os.path.exists(os.path.join(SRC, "top_table.png")):
+    table = Image.open(os.path.join(SRC, "top_table.png")).convert("RGB")
+    save(table.resize((1400, round(table.height * 1400 / table.width)), Image.LANCZOS), "page_table", 70)
+    flags["page_table"] = True
+# トップ画面の背景（tools/make_top.py が作る）があれば、使える絵として数える
+for top in ("top_wide", "top_tall"):
+    if os.path.exists(os.path.join(OUT, top + ".webp")):
+        flags[top] = True
 
 # VSの丸い飾り：白い背景から丸の部分だけを切り出す
 path = os.path.join(SRC, "vs_badge.png")
@@ -96,6 +108,47 @@ if os.path.exists(path):
             sheet.paste(crop, (200 * (i % 6), 200 * (i // 6)))
         sheet.save(os.path.join(SRC, "_zodiac_check.png"))
         flags["zodiac"] = True
+
+# 丸いアイコン：3列×3行の1枚絵（白地）を9個に切り分け、丸の外側を透明にする
+ICONS = ["today", "search", "play", "fortune", "roulette", "slot", "duel", "star", "map"]   # 左上から横へ読む順
+path = os.path.join(SRC, "icon_sheet.png")
+if os.path.exists(path):
+    from PIL import ImageDraw
+    img = Image.open(path).convert("RGB")
+    white = ImageChops.difference(img, Image.new("RGB", img.size, (255, 255, 255))).convert("L").point(lambda v: 255 if v > 24 else 0)
+
+    def spans(on, least=60):
+        """何か描かれている範囲（True が続く区間）を返す。短すぎるものはごみとして捨てる"""
+        out, start = [], None
+        for i, v in enumerate(list(on) + [False]):
+            if v and start is None:
+                start = i
+            elif not v and start is not None:
+                if i - start >= least:
+                    out.append((start, i))
+                start = None
+        return out
+
+    cols = spans(white.crop((x, 0, x + 1, img.height)).getbbox() is not None for x in range(img.width))
+    rows = spans(white.crop((0, y, img.width, y + 1)).getbbox() is not None for y in range(img.height))
+    if len(cols) == 3 and len(rows) == 3:
+        size, k = 144, 4
+        sheet = Image.new("RGB", (size * 3, size * 3), (255, 255, 255))
+        for i, name in enumerate(ICONS):
+            (x0, x1), (y0, y1) = cols[i % 3], rows[i // 3]
+            box = white.crop((x0, y0, x1, y1)).getbbox()        # そのマスの中で、丸にぴったりの範囲
+            badge = square_crop(img, (x0 + box[0], y0 + box[1], x0 + box[2], y0 + box[3]), margin=1.0).resize((size, size), Image.LANCZOS)
+            # 丸の外（白い角）を透明にする。ふちがなめらかになるように、大きく描いた丸を縮めて使う
+            mask = Image.new("L", (size * k, size * k), 0)
+            ImageDraw.Draw(mask).ellipse((k, k, size * k - k, size * k - k), fill=255)
+            icon = badge.convert("RGBA")
+            icon.putalpha(mask.resize((size, size), Image.LANCZOS))
+            icon.save(os.path.join(OUT, f"ico_{name}.webp"), "WEBP", quality=90, method=6)
+            sheet.paste(badge, (size * (i % 3), size * (i // 3)))
+        sheet.save(os.path.join(SRC, "_icon_check.png"))
+        flags["ico"] = True
+    else:
+        print(f"アイコンの切り分けに失敗（列{len(cols)}・行{len(rows)}）")
 
 with open(os.path.join(HERE, "..", "art.js"), "w", encoding="utf-8") as f:
     f.write("window.ART = " + json.dumps(flags) + ";\n")

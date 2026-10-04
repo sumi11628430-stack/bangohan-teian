@@ -1,1 +1,1 @@
-window.ART = {"roulette_stage": true, "slot_marquee": true, "duel_bg": true, "fortune_bg": true, "vs_badge": true, "zodiac": true};
+window.ART = {"roulette_stage": true, "slot_marquee": true, "duel_bg": true, "fortune_bg": true, "page_today": true, "page_search": true, "page_play": true, "page_fortune": true, "page_table": true, "top_wide": true, "top_tall": true, "vs_badge": true, "zodiac": true, "ico": true};

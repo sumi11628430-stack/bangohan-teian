@@ -55,6 +55,55 @@ ART = [
      "placed over it. " + STYLE + NO_TEXT),
 ]
 
+# ページの背景（ナチュラル・カフェ風）と、トップ画面・サムネ用の絵（2026-10-04 社長指示）
+# 背景は、上に文字や白いカードを載せるので、うすい色・うすい線だけにする
+PAPER = ("This image is a subtle website background texture: text and white cards will be placed on top of it, so nothing may be "
+         "bold, dark or attention-grabbing. Style: soft, natural, cafe-like, like high-quality craft paper or washed linen with a "
+         "gentle grain. Very low contrast, light and airy. The drawings are delicate hand-drawn thin line art in a single color only "
+         "slightly darker than the background, small, sparse and evenly scattered like a wrapping-paper pattern, never crowded. "
+         "Flat even lighting, no shadows, no vignette, no border, no frame, no gradient banding.")
+ART += [
+    ("page_today", "1536x1024",
+     "Base color: warm cream / pale apricot. Faint line art in soft orange-brown of Japanese home-dinner tableware: rice bowls, "
+     "chopsticks, small plates, a teapot, soup bowls, a plate with a grilled fish, a ladle. " + PAPER + NO_TEXT),
+    ("page_search", "1536x1024",
+     "Base color: very pale sage green mixed with cream. Faint line art in soft olive green of cooking ingredients: carrot, onion, "
+     "tomato, eggplant, mushroom, leafy greens, an egg, a fish, a sprig of herbs, a lemon slice. " + PAPER + NO_TEXT),
+    ("page_play", "1536x1024",
+     "Base color: very pale coral pink mixed with cream. Faint line art in soft red-orange and gold of playful party items mixed "
+     "with a few utensils: confetti dots, tiny stars, small party flags, a dice, a fork, a spoon, a little crown. " + PAPER + NO_TEXT),
+    ("page_fortune", "1536x1024",
+     "Base color: very pale lavender, like a dawn sky, mixed with cream. Faint line art in soft violet and pale gold of stars, "
+     "tiny constellation lines, a thin crescent moon, small sparkles. " + PAPER + NO_TEXT),
+    ("top_table", "1536x1024",
+     "Top-down photograph of a completely empty light natural wooden dining table, pale oak planks running horizontally, soft "
+     "daylight from a window, warm and cozy, realistic photo. Absolutely nothing on the table: no dishes, no cutlery, no cloth, "
+     "no objects. Even lighting, no strong shadows, no vignette." + NO_TEXT),
+    ("app_icon", "1024x1024",
+     "A simple, cute, flat app-icon illustration: a white-and-cream Japanese rice bowl heaped with rice, with soft curls of steam "
+     "rising and a pair of chopsticks resting across the bowl, centered and filling about 60% of the image, on a solid warm orange "
+     "background (#E8632A) that fills the entire square edge to edge. Bold simple shapes, friendly, clean. No rounded-corner frame, "
+     "no border." + NO_TEXT),
+]
+
+# ボタンや下のメニューに付ける、手描き風の丸いアイコン（2026-10-04 社長指示「アイコンをGPTでおしゃれに」）
+# 1枚に9個を並べて作り、tools/make_art.py が1個ずつに切り分ける
+ART += [
+    ("icon_sheet", "1024x1024",
+     "A sheet of exactly 9 round icon badges arranged in a strict grid of 3 columns and 3 rows, evenly spaced with wide empty gaps "
+     "between them, all exactly the same size, on a plain flat pure white background. Each badge is a perfect circle filled with a "
+     "soft flat pastel color (use a different warm pastel for each badge: peach, cream yellow, sage green, sky blue, lavender, pink, "
+     "mint, apricot, light coral) with a thin warm-brown outline, and contains ONE cute hand-drawn illustration in a cozy Japanese "
+     "cafe / picture-book style: warm colors, simple rounded shapes, gentle crayon-and-watercolor texture, centered with comfortable "
+     "padding so nothing touches the edge of the circle. Reading order: left to right, top row first. "
+     "Row 1: a steaming bowl of white rice with a pair of chopsticks; a magnifying glass; a pair of dice. "
+     "Row 2: a crescent moon with two small stars; a colorful prize wheel (roulette wheel) with a pointer at the top; "
+     "a retro slot machine with three reels and a lever. "
+     "Row 3: a balance scale with a small plate of food on each pan; a shooting star with sparkles; "
+     "a red map pin standing on a folded paper map. "
+     "Consistent style, line weight and badge size across all 9 badges. No text, no letters, no numbers, no logos, no people."),
+]
+
 if __name__ == "__main__":
     os.makedirs(OUT, exist_ok=True)
     only = set(sys.argv[1:])
