@@ -53,16 +53,21 @@
     <div class="panel panel-today">
       <p id="today-label" class="eyebrow"></p>
       <div id="today-dish"></div>
+      <!-- この料理に決めるか、ほかの方法で決めるか -->
+      <div id="today-pick" class="ways">
+        <button type="button" id="today-decide" class="btn btn-primary btn-big today-decide">これに決定</button>
+        <p class="ways-title">ほかの方法で決める</p>
+        <div class="quick">
+          <button type="button" class="quick-btn" data-go="search"><img class="quick-img" src="art/ico_search.webp" alt="" width="48" height="48"><span class="quick-text"><b>条件でさがす</b><small>材料・ジャンル・目的から</small></span></button>
+          <button type="button" class="quick-btn" data-go="play" data-game="roulette"><img class="quick-img" src="art/ico_roulette.webp" alt="" width="48" height="48"><span class="quick-text"><b>ルーレット</b><small>1品をおまかせで</small></span></button>
+          <button type="button" class="quick-btn" data-go="play" data-game="slot"><img class="quick-img" src="art/ico_slot.webp" alt="" width="48" height="48"><span class="quick-text"><b>献立スロット</b><small>主菜・副菜・汁物を一度に</small></span></button>
+          <button type="button" class="quick-btn" data-go="play" data-game="duel"><img class="quick-img" src="art/ico_duel.webp" alt="" width="48" height="48"><span class="quick-text"><b>二択で決める</b><small>10問答えると決まる</small></span></button>
+          <button type="button" class="quick-btn" data-go="fortune"><img class="quick-img" src="art/ico_star.webp" alt="" width="48" height="48"><span class="quick-text"><b>星座で決める</b><small>今日のラッキー晩御飯</small></span></button>
+        </div>
+      </div>
+      <!-- 決めたあとに出す「今夜はどうする？」（作る・買う・外で食べる） -->
+      <div id="today-done" hidden></div>
       <div id="today-with" class="with"></div>
-    </div>
-
-    <h2 class="h2">迷ったら</h2>
-    <div class="quick">
-      <button type="button" class="quick-btn" data-go="play" data-game="roulette"><img class="quick-img" src="art/ico_roulette.webp" alt="" width="48" height="48"><span class="quick-text"><b>ルーレット</b><small>1品をおまかせで</small></span></button>
-      <button type="button" class="quick-btn" data-go="play" data-game="slot"><img class="quick-img" src="art/ico_slot.webp" alt="" width="48" height="48"><span class="quick-text"><b>献立スロット</b><small>主菜・副菜・汁物を一度に</small></span></button>
-      <button type="button" class="quick-btn" data-go="play" data-game="duel"><img class="quick-img" src="art/ico_duel.webp" alt="" width="48" height="48"><span class="quick-text"><b>二択で決める</b><small>10問答えると決まる</small></span></button>
-      <button type="button" class="quick-btn" data-go="search"><img class="quick-img" src="art/ico_search.webp" alt="" width="48" height="48"><span class="quick-text"><b>条件でさがす</b><small>材料・ジャンル・目的から</small></span></button>
-      <button type="button" class="quick-btn" data-go="fortune"><img class="quick-img" src="art/ico_star.webp" alt="" width="48" height="48"><span class="quick-text"><b>星座で決める</b><small>今日のラッキー晩御飯</small></span></button>
     </div>
 
     <div id="recent-box" class="panel" hidden>

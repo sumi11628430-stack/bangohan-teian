@@ -204,6 +204,9 @@
     recent = recent.slice(0, 30);
     store.set('bangohan_recent', recent);
     renderRecent();
+    // 今日の一品を（どの画面からでも）決めたら、「決め直す」の途中だった印を消して、決めたあとの表示にする
+    if (todayDish && names.includes(todayDish.name)) todayReopened = false;
+    renderTodayPick();
     toast(`決定！${AVOID_DAYS}日間は候補から外します`);
   }
   function renderRecent() {
@@ -279,8 +282,9 @@
       photo,
       h('div', { class: 'dish-head' }, photo ? null : pic(d), h('div', { class: 'dish-title' }, h('h3', { class: 'dish-name', text: d.name }), chips(d))),
       h('p', { class: 'mats', text: hint(d) }),
-      ways(d),
-      h('div', { class: 'actions' },
+      // bare＝「今日の一品」用。決めるボタンと「今夜はどうする？」は、カードの外（renderTodayPick）で出す
+      opt.bare ? null : ways(d),
+      opt.bare ? null : h('div', { class: 'actions' },
         h('button', { class: 'btn btn-primary', type: 'button', onclick: () => decide([d.name]), text: 'これに決定' }),
         h('button', { class: 'btn', type: 'button', onclick: () => openShare([d.name]), text: 'シェア' })));
   }
@@ -372,11 +376,34 @@
     const main = from[Math.floor(rng() * from.length)];
     const withs = [sides[Math.floor(rng() * sides.length)], soups[Math.floor(rng() * soups.length)]].filter(Boolean);
     $('#today-label').textContent = TODAY_LABEL + 'の一品';
-    $('#today-dish').replaceChildren(main ? dishCard(main, { big: true }) : h('p', { class: 'note', text: 'この条件で提案できる料理がありません。' }));
+    todayDish = main || null;
+    $('#today-dish').replaceChildren(main ? dishCard(main, { big: true, bare: true }) : h('p', { class: 'note', text: 'この条件で提案できる料理がありません。' }));
+    renderTodayPick();
     $('#today-with').hidden = withs.length === 0;
     $('#today-with').replaceChildren(
       h('p', { class: 'with-title', text: '合わせるなら' }),
       h('ul', {}, withs.map(d => h('li', {}, h('button', { class: 'link', type: 'button', onclick: () => openDetail(d), text: `${d.kubun}：${d.name}` })))));
+  }
+
+  // 今日の一品の下：まず「これに決定」か、ほかの方法で決めるかを選ぶ。
+  // 「これに決定」を押したあとは、同じ場所に「今夜はどうする？」（作る・買う・外で食べる）を出す
+  let todayDish = null, todayReopened = false;   // todayReopened＝決めたあとに「ほかの方法で決め直す」を押した
+  function renderTodayPick() {
+    const d = todayDish;
+    const done = !!d && !todayReopened && recent.some(r => r.n === d.name && r.d === TODAY);
+    $('#today-pick').hidden = done;
+    $('#today-decide').hidden = !d;
+    const box = $('#today-done');
+    box.hidden = !done;
+    box.replaceChildren(...(done ? [
+      // 長い料理名で折り返すときに、「に決定！」の途中で切れないようにする
+      h('p', { class: 'crown' }, `👑 「${d.name}`, h('span', { class: 'keep', text: '」に決定！' })),
+      ways(d),
+      h('div', { class: 'actions' },
+        h('button', { class: 'btn', type: 'button', onclick: () => openShare([d.name]), text: 'シェア' }),
+        h('button', { class: 'link', type: 'button', text: 'ほかの方法で決め直す',
+          onclick: () => { todayReopened = true; renderTodayPick(); $('#today-decide').focus({ preventScroll: true }); } })),
+    ] : []));
   }
 
   // ---------- さがす ----------
@@ -1171,7 +1198,14 @@
     b.setAttribute('aria-pressed', String(held[i]));
   }));
   $('#duel-go').addEventListener('click', startDuel);
-  $('#recent-clear').addEventListener('click', () => { recent = []; store.set('bangohan_recent', recent); renderRecent(); });
+  $('#recent-clear').addEventListener('click', () => { recent = []; store.set('bangohan_recent', recent); renderRecent(); renderTodayPick(); });
+  // 今日の一品の「これに決定」：決めたら、同じ場所に「今夜はどうする？」を出して、最初の札へ移る
+  $('#today-decide').addEventListener('click', () => {
+    if (!todayDish) return;
+    decide([todayDish.name]);
+    const first = $('#today-done .way:not(:disabled)');
+    if (first) first.focus({ preventScroll: true });
+  });
   $$('[data-close]').forEach(b => b.addEventListener('click', closeModal));
   $$('[data-map-close]').forEach(b => b.addEventListener('click', closeMap));
   window.addEventListener('popstate', () => {
