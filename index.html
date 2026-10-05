@@ -22,7 +22,7 @@
 </head>
 <body class="art-top" data-view="top">
 
-<!-- トップ画面（入口）：料理の写真を散りばめた絵の上で、今夜の手段を選ぶ -->
+<!-- トップ画面（入口）：料理の写真を散りばめた絵の上に、題名と「今夜のごはんを決める」ボタン -->
 <section id="view-top" class="view top-view is-active" aria-label="トップ">
   <div class="top-card">
     <p class="top-eyebrow">今夜のごはん、30秒で決めよう</p>
@@ -44,13 +44,6 @@
   <button type="button" id="back" class="back" hidden>← 戻る</button>
   <h1><a href="#top" class="home-link" aria-label="毎日の晩御飯の提案（トップ画面へ）">毎日の晩御飯の提案</a></h1>
   <p class="lead">今夜のごはん、30秒で決めよう</p>
-  <div class="modebar" role="group" aria-label="今夜はどうする？">
-    <span class="modebar-title">今夜はどうする？</span>
-    <button type="button" data-mode="any" aria-pressed="true">まだ決めていない</button>
-    <button type="button" data-mode="cook" aria-pressed="false">家で作る</button>
-    <button type="button" data-mode="buy" aria-pressed="false">買って帰る</button>
-    <button type="button" data-mode="out" aria-pressed="false">外で食べる</button>
-  </div>
 </header>
 
 <main>
@@ -66,7 +59,7 @@
     <h2 class="h2">迷ったら</h2>
     <div class="quick">
       <button type="button" class="quick-btn" data-go="play" data-game="roulette"><img class="quick-img" src="art/ico_roulette.webp" alt="" width="48" height="48"><span class="quick-text"><b>ルーレット</b><small>1品をおまかせで</small></span></button>
-      <button type="button" class="quick-btn not-out" data-go="play" data-game="slot"><img class="quick-img" src="art/ico_slot.webp" alt="" width="48" height="48"><span class="quick-text"><b>献立スロット</b><small>主菜・副菜・汁物を一度に</small></span></button>
+      <button type="button" class="quick-btn" data-go="play" data-game="slot"><img class="quick-img" src="art/ico_slot.webp" alt="" width="48" height="48"><span class="quick-text"><b>献立スロット</b><small>主菜・副菜・汁物を一度に</small></span></button>
       <button type="button" class="quick-btn" data-go="play" data-game="duel"><img class="quick-img" src="art/ico_duel.webp" alt="" width="48" height="48"><span class="quick-text"><b>二択で決める</b><small>10問答えると決まる</small></span></button>
       <button type="button" class="quick-btn" data-go="search"><img class="quick-img" src="art/ico_search.webp" alt="" width="48" height="48"><span class="quick-text"><b>条件でさがす</b><small>材料・ジャンル・目的から</small></span></button>
       <button type="button" class="quick-btn" data-go="fortune"><img class="quick-img" src="art/ico_star.webp" alt="" width="48" height="48"><span class="quick-text"><b>星座で決める</b><small>今日のラッキー晩御飯</small></span></button>
@@ -90,6 +83,12 @@
     </div>
     <div class="panel filters">
       <label class="qbox"><span>ことばで探す</span><input type="search" id="q" placeholder="例：カレー、なす、鶏肉" autocomplete="off"></label>
+      <div class="modebar" role="group" aria-label="候補をしぼる">
+        <span class="modebar-title">候補をしぼる</span>
+        <button type="button" data-mode="any" aria-pressed="true">すべて</button>
+        <button type="button" data-mode="buy" aria-pressed="false">買える料理</button>
+        <button type="button" data-mode="out" aria-pressed="false">外食の料理</button>
+      </div>
       <details class="fgroup only-out" open>
         <summary>お店の種類から</summary>
         <div id="f-shop" class="picks"></div>
@@ -136,7 +135,15 @@
       <button type="button" role="tab" class="not-out" data-game="slot" aria-selected="false">献立スロット</button>
       <button type="button" role="tab" data-game="duel" aria-selected="false">二択</button>
     </div>
-    <label class="check"><input type="checkbox" id="teiban-only" checked> 定番の料理だけで回す</label>
+    <div class="panel pickbox">
+      <div class="modebar" role="group" aria-label="候補をしぼる">
+        <span class="modebar-title">候補をしぼる</span>
+        <button type="button" data-mode="any" aria-pressed="true">すべて</button>
+        <button type="button" data-mode="buy" aria-pressed="false">買える料理</button>
+        <button type="button" data-mode="out" aria-pressed="false">外食の料理</button>
+      </div>
+      <label class="check"><input type="checkbox" id="teiban-only" checked> 定番の料理だけで回す</label>
+    </div>
 
     <div id="game-roulette" class="game is-active">
       <div class="panel center">
@@ -197,7 +204,7 @@
 <footer class="foot">
   <p>料理の名前は、食品メーカー・料理メディア・公的機関などの公開ページから集めました。作り方は載せていません。「作り方を探す」から検索できます。</p>
   <p>がっつり・野菜たっぷりなどの札は目安です。</p>
-  <p>「お惣菜で買える」「外食で食べられる」の印や、お店の種類も目安です。売り場やお店によっては扱いがない場合があります。</p>
+  <p>「今夜はどうする？」で、うすく「目安なし」と出ている手段は、その料理を買える店・食べられる店の目安がないものです。「買って帰る」「外で食べる」やお店の種類は目安で、売り場やお店によっては扱いがない場合があります。</p>
   <p>料理の画像にはイメージを含みます。実際の料理とは見た目が異なる場合があります。</p>
   <details id="credits-box" class="credits" hidden>
     <summary>写真の出典<span id="credits-count"></span></summary>

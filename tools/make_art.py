@@ -109,11 +109,15 @@ if os.path.exists(path):
         sheet.save(os.path.join(SRC, "_zodiac_check.png"))
         flags["zodiac"] = True
 
-# 丸いアイコン：3列×3行の1枚絵（白地）を9個に切り分け、丸の外側を透明にする
-ICONS = ["today", "search", "play", "fortune", "roulette", "slot", "duel", "star", "map"]   # 左上から横へ読む順
-path = os.path.join(SRC, "icon_sheet.png")
-if os.path.exists(path):
-    from PIL import ImageDraw
+# 丸いアイコン：1枚絵（白地に丸いアイコンを格子に並べたもの）を1個ずつに切り分け、丸の外側を透明にする
+from PIL import ImageDraw
+
+
+def cut_icons(sheet_name, ICONS, ncols, nrows, flag):
+    """ICONS＝左上から横へ読む順の名前。flag＝切り分けられたときに art.js に立てる目印"""
+    path = os.path.join(SRC, sheet_name + ".png")
+    if not os.path.exists(path):
+        return
     img = Image.open(path).convert("RGB")
     white = ImageChops.difference(img, Image.new("RGB", img.size, (255, 255, 255))).convert("L").point(lambda v: 255 if v > 24 else 0)
 
@@ -131,11 +135,11 @@ if os.path.exists(path):
 
     cols = spans(white.crop((x, 0, x + 1, img.height)).getbbox() is not None for x in range(img.width))
     rows = spans(white.crop((0, y, img.width, y + 1)).getbbox() is not None for y in range(img.height))
-    if len(cols) == 3 and len(rows) == 3:
+    if len(cols) == ncols and len(rows) == nrows:
         size, k = 144, 4
-        sheet = Image.new("RGB", (size * 3, size * 3), (255, 255, 255))
+        sheet = Image.new("RGB", (size * ncols, size * nrows), (255, 255, 255))
         for i, name in enumerate(ICONS):
-            (x0, x1), (y0, y1) = cols[i % 3], rows[i // 3]
+            (x0, x1), (y0, y1) = cols[i % ncols], rows[i // ncols]
             box = white.crop((x0, y0, x1, y1)).getbbox()        # そのマスの中で、丸にぴったりの範囲
             badge = square_crop(img, (x0 + box[0], y0 + box[1], x0 + box[2], y0 + box[3]), margin=1.0).resize((size, size), Image.LANCZOS)
             # 丸の外（白い角）を透明にする。ふちがなめらかになるように、大きく描いた丸を縮めて使う
@@ -144,11 +148,15 @@ if os.path.exists(path):
             icon = badge.convert("RGBA")
             icon.putalpha(mask.resize((size, size), Image.LANCZOS))
             icon.save(os.path.join(OUT, f"ico_{name}.webp"), "WEBP", quality=90, method=6)
-            sheet.paste(badge, (size * (i % 3), size * (i // 3)))
-        sheet.save(os.path.join(SRC, "_icon_check.png"))
-        flags["ico"] = True
+            sheet.paste(badge, (size * (i % ncols), size * (i // ncols)))
+        sheet.save(os.path.join(SRC, f"_{sheet_name}_check.png"))
+        flags[flag] = True
     else:
         print(f"アイコンの切り分けに失敗（列{len(cols)}・行{len(rows)}）")
+
+
+cut_icons("icon_sheet", ["today", "search", "play", "fortune", "roulette", "slot", "duel", "star", "map"], 3, 3, "ico")
+cut_icons("icon_sheet2", ["cook", "buy", "out"], 3, 1, "ico2")   # 料理カードの「今夜はどうする？」用
 
 with open(os.path.join(HERE, "..", "art.js"), "w", encoding="utf-8") as f:
     f.write("window.ART = " + json.dumps(flags) + ";\n")

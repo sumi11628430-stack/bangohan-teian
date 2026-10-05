@@ -494,7 +494,7 @@ body.art-fortune .sky {
 .machine .btn-big { margin-bottom: 14px; }
 
 
-/* ==================== 今夜の手段（作る・買う・外で食べる） ==================== */
+/* ==================== 候補のしぼり込み（すべて・買える料理・外食の料理） ==================== */
 .modebar { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px; margin-top: 12px; }
 .modebar-title { width: 100%; font-size: .86rem; font-weight: 700; color: var(--accent-dark); }
 .modebar button {
@@ -503,12 +503,11 @@ body.art-fortune .sky {
 }
 .modebar button:hover { border-color: var(--ink); }
 .modebar button[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: #fff; }
-/* 手段によって、出す・出さないを切り替える */
+/* しぼり込みによって、出す・出さないを切り替える */
 body[data-mode="buy"] .only-cook, body[data-mode="out"] .only-cook { display: none; }
 body:not([data-mode="out"]) .only-out { display: none; }
 body[data-mode="out"] .not-out { display: none; }
 body[data-mode="out"] .seg { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.chip-way { background: #e3f1e8; color: #2a6a47; }
 
 /* ---------- ことばで探す ---------- */
 .qbox { display: block; margin-bottom: 10px; }
@@ -519,7 +518,7 @@ body[data-mode="out"] .seg { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 .qbox input:focus { outline: 2px solid var(--accent); border-color: var(--accent); }
 
-/* ---------- 献立スロット：その手段で候補が無い列 ---------- */
+/* ---------- 献立スロット：そのしぼり込みで候補が無い列 ---------- */
 .cell-none { font-size: .95rem; font-weight: 700; color: var(--sub); }
 .reelwin.is-none { background: #f1e9dc; border-style: dashed; }
 .hold:disabled { opacity: .45; cursor: default; }
@@ -564,7 +563,6 @@ body[data-mode="out"] .seg { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .map-foot #map-open { display: inline-block; padding: 10px 0; font-weight: 700; }
 .map-foot .link { padding: 10px 2px; font-size: .8rem; }
 .map-about p { margin: 0 0 6px; }
-.btn-map { border-color: var(--accent); color: var(--accent-dark); font-weight: 700; }
 /* 幅の狭い画面では「場所」の見出しを隠して、入力欄を広く取る（読み上げには残す） */
 @media (max-width: 400px) {
   #map-area label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
@@ -677,8 +675,6 @@ button, .btn, .row { -webkit-tap-highlight-color: transparent; transition: backg
 .btn-primary:hover { background: linear-gradient(#f0753b, #db5820); border-color: #cf4e19; box-shadow: 0 3px 0 #a93f12; }
 .btn-primary:active { transform: translateY(3px); box-shadow: none; }
 .btn-primary:disabled { transform: none; box-shadow: 0 3px 0 #a93f12; }
-.btn-map { background: #fff7f1; }
-.btn-map::before { content: ''; flex: none; width: 24px; height: 24px; margin: -2px 6px -2px -4px; border-radius: 50%; background: url(art/ico_map.webp) center / cover; }
 .link:hover { text-decoration-thickness: 2px; }
 .pick { box-shadow: var(--press); }
 .pick:hover { border-color: var(--accent); }
@@ -762,3 +758,45 @@ body[data-view="top"] { padding-bottom: 0; }
 .machine .btn-big:hover, .machine .btn-big:disabled { box-shadow: 0 6px 0 #a86a00, 0 10px 16px rgba(0, 0, 0, .3); }  /* 「回す」の金色の厚みを保つ */
 .machine .btn-big:active { box-shadow: 0 2px 0 #a86a00; }
 .check + .check { margin-top: 0; }           /* 2つのチェックの札がくっつかないように */
+
+/* ==================== 「今夜はどうする？」を料理カードの中へ（2026-10-05 社長指示） ==================== */
+/* 料理が決まったあとに選ぶ3つの手段。できない手段は、うすく出して押せなくする */
+.ways { margin-top: 12px; padding: 12px 10px 10px; background: #fff8f1; border: 1px solid #f4dcc9; border-radius: 16px; }
+.ways-title { margin-bottom: 8px; text-align: center; color: #b8461a; font-weight: 700; font-size: .92rem; letter-spacing: .06em; }
+.ways-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.way {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 96px; padding: 8px 4px;
+  background: #fff; color: var(--ink); border: 1.5px solid var(--line); border-radius: 14px; box-shadow: var(--press);
+  text-align: center; text-decoration: none;
+}
+.way img { width: 40px; height: 40px; border-radius: 50%; }
+.way b { font-size: .92rem; line-height: 1.3; }
+.way small { color: var(--sub); font-size: .72rem; line-height: 1.3; }
+.way:hover { border-color: var(--accent); }
+.way:active { transform: translateY(2px); box-shadow: none; }
+.way:disabled { background: #f7f2ea; border-style: dashed; box-shadow: none; cursor: default; }
+.way:disabled:hover { border-color: var(--line); }
+.way:disabled img { filter: grayscale(1); opacity: .45; }
+.way:disabled b { color: #7a6657; }
+.way:disabled small { color: #6b584a; }
+/* 幅の狭いスマホでも、札の文字が1行に収まるようにする */
+.way b, .way small { white-space: nowrap; }
+@media (max-width: 359px) {
+  .ways { padding-left: 6px; padding-right: 6px; }
+  .ways-row { gap: 6px; }
+  .way { padding: 8px 2px; }
+  .way b { font-size: .8rem; }
+  .way small { font-size: .66rem; }
+}
+
+/* 候補のしぼり込み（さがすの条件の中・おまかせの札の中） */
+.modebar { justify-content: flex-start; margin-top: 0; }
+.modebar-title { text-align: left; color: var(--ink); font-size: 1rem; letter-spacing: 0; }
+.filters .modebar { margin-bottom: 12px; }
+@media (max-width: 480px) {
+  .modebar { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .modebar button { padding: 4px 2px; white-space: nowrap; }
+}
+@media (max-width: 359px) { .modebar button { font-size: .82rem; } }
+.pickbox { padding: 12px 14px; margin-bottom: 10px; }
+.pickbox .check { width: auto; margin: 10px 0 0; padding: 0; background: none; box-shadow: none; }

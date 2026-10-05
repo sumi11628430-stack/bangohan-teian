@@ -14,7 +14,7 @@
   }));
   // ワード検索用：ひらがな・カタカナ・全角半角の違いをなくした文字にする
   const kana = s => s.normalize('NFKC').toLowerCase().replace(/[\u30a1-\u30f6]/g, c => String.fromCharCode(c.charCodeAt(0) - 0x60));
-  // お店の種類は「外で食べる」のときだけ探す対象にする（作る・買うのときに、関係のない料理が出ないように）
+  // お店の種類は「外食の料理」にしぼったときだけ探す対象にする（ほかのときに、関係のない料理が出ないように）
   D.forEach(d => {
     d.text = kana([d.name, d.mats.join(' '), d.kubun, d.genre, d.zairyo].join(' '));
     d.textOut = d.text + ' ' + kana(d.shop);
@@ -185,15 +185,16 @@
   };
   let recent = store.get('bangohan_recent', []);
 
-  // ---------- 今夜の手段（まだ決めていない／家で作る／買って帰る／外で食べる） ----------
-  const MODES = ['any', 'cook', 'buy', 'out'];
-  let mode = store.get('bangohan_mode', 'any');
-  if (!MODES.includes(mode)) mode = 'any';
+  // ---------- 候補のしぼり込み（すべて／買える料理／外食の料理） ----------
+  // 「今夜はどうする？」は、料理が決まったあとにカードの中で選ぶ（ways）。
+  // ここは、さがす・おまかせの候補を先に絞りたいとき用。画面の上で常に選ぶ形をやめたので、前回の選択は持ち越さず、開くたびに「すべて」から始める
+  const MODES = ['any', 'buy', 'out'];
+  let mode = 'any';
   // 買える場所の名前（料理側は、買える場所を足し合わせた数で持つ。1＝コンビニ、2＝スーパー、4＝お弁当・持ち帰りの店）
   const PLACES = { 1: 'コンビニ', 2: 'スーパー', 4: 'お弁当・持ち帰りの店' };
-  let epoch = 0;  // 手段を変えるたびに1つ進める。回っている途中で変えたら、前の条件の結果は出さない
-  // その手段で提案できる料理か
-  const inMode = d => mode === 'any' || (mode === 'cook' ? d.cook : mode === 'buy' ? d.buy : d.out);
+  let epoch = 0;  // しぼり込みを変えるたびに1つ進める。回っている途中で変えたら、前の条件の結果は出さない
+  // しぼり込みに合う料理か
+  const inMode = d => mode === 'any' || (mode === 'buy' ? d.buy : d.out);
   const daysAgo = dstr => Math.round((new Date(TODAY) - new Date(dstr)) / 86400000);
   const avoidSet = () => new Set(recent.filter(r => daysAgo(r.d) < AVOID_DAYS).map(r => r.n));
 
@@ -246,28 +247,30 @@
       h('figcaption', {}, p.ai ? '画像はイメージです'
         : h('a', { href: p.page, target: '_blank', rel: 'noopener', text: `写真：${p.by}／${p.lic}／Wikimedia Commons` })));
   }
-  // 料理が決まったあとの出口。作るときは作り方の検索、買う・食べに行くときは「地図で探す」（サイトの中で地図が開く）
-  function exits(d) {
-    // 今の手段では提案できない料理を開いたときは、決めていないときと同じく使える出口を全部出す
-    const any = mode === 'any' || !inMode(d), list = [];
-    if (d.cook && (any || mode === 'cook')) list.push(h('a', { class: 'btn', href: recipeUrl(d.name), target: '_blank', rel: 'noopener', text: any ? '作る：作り方を探す' : '作り方を探す' }));
-    const buy = d.buy && (any || mode === 'buy'), out = d.out && (any || mode === 'out');
-    if (buy || out) list.push(h('button', { class: 'btn btn-map', type: 'button', onclick: () => openMap(d),
-      text: !any ? '地図で探す' : buy && out ? '買う・食べに行く：地図で探す' : buy ? '買う：地図で探す' : '食べに行く：地図で探す' }));
-    return list;
+  // 料理が決まったあとの「今夜はどうする？」。その料理でできる手段だけ押せる（できない手段は、うすく出して「目安なし」と書く）
+  //   家で作る → 作り方の検索を開く／買って帰る・外で食べる → サイトの中で地図が開く
+  function ways(d) {
+    const tile = (on, icon, label, sub, attrs) => {
+      const kids = [ART.ico2 ? h('img', { src: `art/ico_${icon}.webp`, alt: '', width: 40, height: 40 }) : null, h('b', { text: label }), h('small', { text: on ? sub : '目安なし' })];
+      return on ? h(attrs.href ? 'a' : 'button', Object.assign({ class: 'way' }, attrs), kids)
+        : h('button', { class: 'way', type: 'button', disabled: true }, kids);
+    };
+    return h('div', { class: 'ways' },
+      h('p', { class: 'ways-title', text: '今夜はどうする？' }),
+      h('div', { class: 'ways-row' },
+        tile(d.cook, 'cook', '家で作る', '作り方を探す', { href: recipeUrl(d.name), target: '_blank', rel: 'noopener' }),
+        tile(d.buy, 'buy', '買って帰る', '地図で探す', { type: 'button', onclick: () => openMap(d, 'buy') }),
+        tile(d.out, 'out', '外で食べる', '地図で探す', { type: 'button', onclick: () => openMap(d, 'out') })));
   }
-  // 料理名の下の一言。作るときは材料、買う・外食のときはどこで手に入るか
+  // 料理名の下の一言
   function hint(d) {
-    if (mode === 'buy' && d.buy) return '買える場所：' + [1, 2, 4].filter(p => d.places & p).map(p => PLACES[p]).join('・');
-    if (mode === 'out' && d.out) return d.shop ? `「${d.shop}」のお店などで食べられます` : '外食で食べられる料理です';
     return '主な材料：' + d.mats.join('・');
   }
   function chips(d) {
     const list = [d.kubun, d.genre];
     if (d.kisetsu !== '通年') list.push(d.kisetsu + 'の料理');
     if (d.teiban) list.push('定番');
-    const way = mode === 'any' ? [d.buy && 'お惣菜で買える', d.out && '外食で食べられる'].filter(Boolean) : [];
-    return h('div', { class: 'chips' }, list.map(t => h('span', { class: 'chip', text: t })), way.map(t => h('span', { class: 'chip chip-way', text: t })));
+    return h('div', { class: 'chips' }, list.map(t => h('span', { class: 'chip', text: t })));
   }
   function dishCard(d, opt) {
     opt = opt || {};
@@ -276,9 +279,9 @@
       photo,
       h('div', { class: 'dish-head' }, photo ? null : pic(d), h('div', { class: 'dish-title' }, h('h3', { class: 'dish-name', text: d.name }), chips(d))),
       h('p', { class: 'mats', text: hint(d) }),
+      ways(d),
       h('div', { class: 'actions' },
         h('button', { class: 'btn btn-primary', type: 'button', onclick: () => decide([d.name]), text: 'これに決定' }),
-        exits(d),
         h('button', { class: 'btn', type: 'button', onclick: () => openShare([d.name]), text: 'シェア' })));
   }
   function menuCard(set) {
@@ -358,18 +361,17 @@
 
   // ---------- 今日の一品 ----------
   function renderHome() {
-    const rng = seeded('today|' + TODAY + '|' + mode);
-    // その手段で提案できる料理から選ぶ。定番が少なすぎる種類は、定番以外も含める
-    const pool = k => { const all = D.filter(d => inMode(d) && inSeason(d) && k(d)); const t = all.filter(d => d.teiban); return t.length >= 5 ? t : all; };
+    const rng = seeded('today|' + TODAY + '|any');
+    // 今日の一品は、しぼり込みに関係なく全部の料理から選ぶ。定番が少なすぎる種類は、定番以外も含める
+    const pool = k => { const all = D.filter(d => inSeason(d) && k(d)); const t = all.filter(d => d.teiban); return t.length >= 5 ? t : all; };
     const mains = pool(d => MAIN_KUBUN.includes(d.kubun));
     const sides = pool(d => d.kubun === '副菜');
     const soups = pool(d => d.kubun === '汁物');
     const shot = mains.filter(imgOf);
     const from = shot.length >= 20 ? shot : mains;  // 写真のある料理が十分あれば、その中から選ぶ
     const main = from[Math.floor(rng() * from.length)];
-    // 外で食べるときは、副菜・汁物の組み合わせは出さない
-    const withs = mode === 'out' ? [] : [sides[Math.floor(rng() * sides.length)], soups[Math.floor(rng() * soups.length)]].filter(Boolean);
-    $('#today-label').textContent = TODAY_LABEL + { any: 'の一品', cook: 'に作るなら', buy: 'に買って帰るなら', out: 'に食べに行くなら' }[mode];
+    const withs = [sides[Math.floor(rng() * sides.length)], soups[Math.floor(rng() * soups.length)]].filter(Boolean);
+    $('#today-label').textContent = TODAY_LABEL + 'の一品';
     $('#today-dish').replaceChildren(main ? dishCard(main, { big: true }) : h('p', { class: 'note', text: 'この条件で提案できる料理がありません。' }));
     $('#today-with').hidden = withs.length === 0;
     $('#today-with').replaceChildren(
@@ -541,7 +543,7 @@
   }
   function updatePoolNote() {
     const n = roulettePool().length;
-    const what = { any: '今の季節に合う主役の料理', cook: '家で作れる主役の料理', buy: '買って帰れる主役の料理', out: '外で食べられる主役の料理' }[mode];
+    const what = { any: '今の季節に合う主役の料理', buy: '買って帰れる主役の料理', out: '外で食べられる主役の料理' }[mode];
     $('#roulette-pool').textContent = hasFilter() ? `「さがす」で絞った${n}件から選びます` : `${what}${n}件から選びます`;
     $('#roulette-go').disabled = n === 0 || wheelBusy;
   }
@@ -568,7 +570,7 @@
     wheelDeg = (((270 - mid) % 360) + 360) % 360;
     const at = epoch;
     const finish = () => {
-      if (at !== epoch) return;  // 回っている途中で手段が変わった
+      if (at !== epoch) return;  // 回っている途中でしぼり込みが変わった
       wheelBusy = false;
       wrap.classList.remove('is-spinning');
       wrap.classList.add('is-win');
@@ -606,7 +608,7 @@
     const strip = win.firstElementChild;
     const at = epoch;
     const settle = () => {
-      if (at !== epoch) return;  // 回っている途中で手段が変わった
+      if (at !== epoch) return;  // 回っている途中でしぼり込みが変わった
       strip.style.transition = 'none'; strip.style.transform = 'none';
       strip.replaceChildren(cell(final));
       win.classList.remove('is-spinning'); win.classList.add('is-done');
@@ -626,7 +628,7 @@
     strip.style.transform = `translateY(${strip.firstElementChild.offsetTop - strip.lastElementChild.offsetTop}px)`;
     setTimeout(settle, ms + 80);
   }
-  // その手段で候補が無い列（「買って帰る」の汁物など）は、回さずに「なし」と見せて理由を書く
+  // そのしぼり込みで候補が無い列（「買える料理」の汁物など）は、回さずに「なし」と見せて理由を書く
   function markReels() {
     const none = [];
     REELS.forEach((kubun, i) => {
@@ -708,7 +710,7 @@
       won.classList.add('is-win');
       lost.classList.add('is-lose');
       const next = () => {
-        if (duel !== cur) return;  // 勝ち負けの動きの途中で手段が変わった
+        if (duel !== cur) return;  // 勝ち負けの動きの途中でしぼり込みが変わった
         if (duel.round >= DUEL_ROUNDS) { finishDuel(win); return; }
         duel.round++;
         // 勝った料理は残り、負けた側に次の料理が入る
@@ -758,14 +760,14 @@
       const rng = seeded(`fortune|${TODAY}|${sign}`);
       const color = L.color[Math.floor(rng() * L.color.length)];
       // その色の料理を、主役の定番→定番→全部の順で探す（少なすぎる色でも必ず1品出す）
-      const ok = d => inMode(d) && d.color === color && inSeason(d);
+      const ok = d => d.color === color && inSeason(d);
       let pool = D.filter(d => ok(d) && d.teiban && MAIN_KUBUN.includes(d.kubun));
       if (pool.length < 3) pool = D.filter(d => ok(d) && d.teiban);
       if (pool.length < 3) pool = D.filter(ok);
-      // 手段によっては、その色の料理が1品も無いことがある。そのときは色にこだわらず、主役の料理から選ぶ
+      // その色の料理が1品も無いときは、色にこだわらず、主役の料理から選ぶ
       const noColor = pool.length === 0;
-      if (noColor) pool = D.filter(d => inMode(d) && inSeason(d) && MAIN_KUBUN.includes(d.kubun));
-      if (!pool.length) pool = D.filter(inMode);
+      if (noColor) pool = D.filter(d => inSeason(d) && MAIN_KUBUN.includes(d.kubun));
+      if (!pool.length) pool = D;
       const shot = pool.filter(imgOf);
       if (shot.length >= 3) pool = shot;
       const dish = pool[Math.floor(rng() * pool.length)];
@@ -900,10 +902,10 @@
     if (body.scrollTop < bottom) body.scrollTop = bottom;
   }
 
-  function openMap(d) {
+  // way＝カードの「今夜はどうする？」で押した手段（'buy'＝買って帰る／'out'＝外で食べる）
+  function openMap(d, way) {
     if (!$('#mapbox').hidden) return;  // すでに開いている（キーボードで続けて押したときなど）
-    const any = mode === 'any' || !inMode(d);
-    const buy = d.buy && (any || mode === 'buy'), out = d.out && (any || mode === 'out');
+    const buy = way === 'buy' && d.buy, out = way === 'out' && d.out;
     mapItems = [];
     if (out) {
       mapItems.push({ id: 'dish', label: `「${d.name}」の店`, q: d.name });
@@ -912,11 +914,11 @@
     }
     // 持ち帰りの店で買える料理は、その料理を持ち帰れる店を探す。それ以外は、お弁当や持ち帰りの店を広く探す
     if (buy) mapItems.push(...MAP_BUY.map(m => m.id === 'take' && (d.places & 4) ? Object.assign({}, m, { q: d.name + ' 持ち帰り' }) : m));
-    if (!mapItems.length) return;  // 今の手段では地図で探せない料理（手段を変える前のカードが残っていた場合）
+    if (!mapItems.length) return;  // その手段では探せない料理（押せないボタンなので、通常は来ない）
     // 最初に選んでおく種類：食べに行ける料理は料理名、買う料理はスーパー（買える料理は、どれもスーパーで買える扱い）
     mapSel = out ? 'dish' : 'sup';
     mapWord = '';
-    $('#map-title').textContent = `「${d.name}」を地図で探す`;
+    $('#map-title').textContent = `「${d.name}」を${out ? '食べに行く店' : '買える店'}を探す`;
     const marks = [1, 2, 4].filter(p => d.places & p).map(p => PLACES[p]);
     $('#map-hint').hidden = !(buy && marks.length);
     $('#map-hint').textContent = '買える場所の目安：' + marks.join('・');
@@ -1066,26 +1068,25 @@
     toastTimer = setTimeout(() => { t.hidden = true; }, 2600);
   }
 
-  // ---------- 今夜の手段を切り替える ----------
+  // ---------- 候補のしぼり込みを切り替える ----------
   function setMode(m) {
     mode = MODES.includes(m) ? m : 'any';
-    store.set('bangohan_mode', mode);
     refresh();
   }
-  // 手段が変わったら、画面全体をその条件に合わせ直す
+  // しぼり込みが変わったら、さがす・おまかせをその条件に合わせ直す（今日の一品と占いは、しぼり込みに関係しない）
   function refresh() {
     document.body.dataset.mode = mode;
     $$('.modebar button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === mode)));
-    // その手段で使わない条件は外す（画面から隠れた条件が効いたままにならないように）
+    // そのしぼり込みで使わない条件は外す（画面から隠れた条件が効いたままにならないように）。外したときは一言知らせる
+    const dropped = (mode !== 'any' && F.mats.size > 0) || (mode !== 'out' && F.shop.size > 0);
     if (mode === 'buy' || mode === 'out') { F.mats.clear(); $$('#f-mats .pick').forEach(b => b.setAttribute('aria-pressed', 'false')); }
     if (mode !== 'out') { F.shop.clear(); $$('#f-shop .pick').forEach(b => b.setAttribute('aria-pressed', 'false')); }
+    if (dropped) toast('しぼり込みに合わない条件（材料・お店の種類）は外しました');
     shown = PAGE;
-    renderHome();
     renderResults();
-    // おまかせ・占いの結果は前の手段のものなので、最初の状態に戻す。回っている途中のものは止める
+    // おまかせの結果は前の条件のものなので、最初の状態に戻す。回っている途中のものは止める
     epoch++;
     wheelBusy = false;
-    clearTimeout(fortuneTimer);
     resetRoulette();
     slot.fill(null); held.fill(false);
     $$('.hold').forEach(b => b.setAttribute('aria-pressed', 'false'));
@@ -1097,8 +1098,7 @@
     $('#duel-area').replaceChildren(); $('#duel-result').replaceChildren();
     $('#duel-go').hidden = false; $('#duel-go').textContent = 'はじめる'; $('#duel-note').hidden = false;
     $('#duel-progress').textContent = 'どっちが食べたい？'; renderDots(0);
-    $('#fortune-result').replaceChildren(); $$('#signs .sign').forEach(b => b.setAttribute('aria-pressed', 'false'));
-    if (mode === 'out' && here === 'play/slot') go('play/roulette');  // 外で食べるときは献立スロットを出さない
+    if (mode === 'out' && here === 'play/slot') go('play/roulette');  // 外食の料理にしぼったときは献立スロットを出さない
   }
 
   // ---------- 写真の出典 ----------
@@ -1128,7 +1128,11 @@
   markReels();
 
   $$('.tabbar button').forEach(b => b.addEventListener('click', () => go(b.dataset.view)));
-  $$('[data-go]').forEach(b => b.addEventListener('click', () => go(b.dataset.go + (b.dataset.game ? '/' + b.dataset.game : ''))));
+  $$('[data-go]').forEach(b => b.addEventListener('click', () => {
+    // 献立スロットは外食の料理だけでは回せないので、「今日」の画面から来たときは、しぼり込みを「すべて」に戻す
+    if (b.dataset.game === 'slot' && mode === 'out') { setMode('any'); toast('献立スロットは、すべての料理から回します'); }
+    go(b.dataset.go + (b.dataset.game ? '/' + b.dataset.game : ''));
+  }));
   $$('.seg button').forEach(b => b.addEventListener('click', () => go('play/' + b.dataset.game)));
   $('#back').addEventListener('click', goBack);
   window.addEventListener('hashchange', route);
@@ -1138,7 +1142,7 @@
   render(here);
 
   $$('.modebar button').forEach(b => b.addEventListener('click', () => setMode(b.dataset.mode)));
-  // トップ画面：ボタンを押したら「今日」の画面へ（手段は、次の画面の「今夜はどうする？」で選ぶ）
+  // トップ画面：ボタンを押したら「今日」の画面へ（作る・買う・外で食べるは、料理カードの中の「今夜はどうする？」で選ぶ）
   $('#top-go').addEventListener('click', () => go('home'));
   // 背景の絵は、開いて少ししてから先に読み込んでおく（切り替えたときに、絵が遅れて出ないように）
   setTimeout(() => BGS.forEach(n => { new Image().src = 'art/page_' + n + '.webp'; }), 1500);

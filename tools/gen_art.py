@@ -104,10 +104,28 @@ ART += [
      "Consistent style, line weight and badge size across all 9 badges. No text, no letters, no numbers, no logos, no people."),
 ]
 
+# 料理カードの「今夜はどうする？」（家で作る・買って帰る・外で食べる）に付ける丸いアイコン（2026-10-05）
+# 前に作ったアイコンの絵を見本として渡し、同じ画風で3個作る
+ART += [
+    ("icon_sheet2", "1536x1024",
+     "Use the attached image ONLY as a style reference: the same hand-drawn crayon-and-watercolor picture-book style, the same "
+     "round badges with a thin warm-brown outline and a soft flat pastel fill, the same level of detail. Create a NEW sheet of "
+     "exactly 3 round icon badges in a single horizontal row, evenly spaced with wide empty gaps between them, all exactly the "
+     "same size, vertically centered, on a plain flat pure white background. "
+     "Left badge (pastel yellow): a frying pan with a sunny-side-up egg and a wooden spatula, meaning cooking at home. "
+     "Middle badge (pastel green): a paper shopping bag filled with groceries, with a leek and a baguette sticking out, meaning "
+     "buying food to take home. "
+     "Right badge (pastel blue): a plate with a fork and a knife under a small striped restaurant awning, meaning eating out. "
+     "Each illustration is centered with comfortable padding so nothing touches the edge of its circle. "
+     "No text, no letters, no numbers, no logos, no people.",
+     ["icon_sheet.png"]),
+]
+
 if __name__ == "__main__":
     os.makedirs(OUT, exist_ok=True)
     only = set(sys.argv[1:])
     jobs = [a for a in ART if not only or a[0] in only]
     with ThreadPoolExecutor(max_workers=3) as ex:
-        for name, result in ex.map(lambda a: gpt_run.run(OUT, a[0], a[1], a[2], timeout=900), jobs):
+        # 4つ目に見本の絵（art_src の中のファイル名）があれば、一緒に渡す
+        for name, result in ex.map(lambda a: gpt_run.run(OUT, a[0], a[1], a[2], refs=[os.path.join(OUT, r) for r in a[3]] if len(a) > 3 else (), timeout=900), jobs):
             print(name, result, flush=True)
