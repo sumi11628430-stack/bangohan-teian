@@ -72,7 +72,7 @@
   const WHEEL_N = 10;          // ルーレットの円盤に並べる料理の数
   const SPIN_MS = 5000;        // ルーレットが回っている時間（ミリ秒）
   const OPEN_MS = 2000;        // 止まる何ミリ秒前に「？」を料理名に変えるか
-  const PHOTO_MIN = 12;        // 「写真のある料理だけ」を効かせる下限（これより少ないときは全体から選ぶ）
+  const PHOTO_MIN = 12;        // 「定番の料理だけ」を効かせる下限（定番がこれより少ない種類は、定番以外も含めて選ぶ）
   const FONT = '"Hiragino Maru Gothic ProN","BIZ UDPGothic","Yu Gothic","Meiryo",sans-serif';
 
   // 目的の札（複数選ぶと、すべてに当てはまる料理だけ）
@@ -461,14 +461,10 @@
 
   // ---------- おまかせ（共通） ----------
   const teibanOnly = () => $('#teiban-only').checked;
-  const photoOnly = () => $('#photo-only').checked;
   function base(test) {
     const all = D.filter(d => inMode(d) && inSeason(d) && test(d));
-    let list = teibanOnly() ? all.filter(d => d.teiban) : all;
-    if (list.length < PHOTO_MIN) list = all;  // 定番だけでは少なすぎるときは、定番以外も含める
-    if (!photoOnly()) return list;
-    const shot = list.filter(imgOf);
-    return shot.length >= PHOTO_MIN ? shot : list;  // 写真つきが少なすぎる種類は全体から選ぶ
+    const list = teibanOnly() ? all.filter(d => d.teiban) : all;
+    return list.length < PHOTO_MIN ? all : list;  // 定番だけでは少なすぎるときは、定番以外も含める
   }
 
   // ---------- ルーレット（円盤） ----------
@@ -1158,7 +1154,6 @@
     resetRoulette();
   });
   $('#teiban-only').addEventListener('change', resetRoulette);
-  $('#photo-only').addEventListener('change', resetRoulette);
   $('#filter-clear').addEventListener('click', clearFilters);
   $('#filter-roulette').addEventListener('click', () => { go('play/roulette'); runRoulette(); });
   $('#result-more').addEventListener('click', () => { shown += PAGE; renderResults(); });

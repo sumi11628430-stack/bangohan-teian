@@ -493,12 +493,6 @@ body.art-fortune .sky {
 }
 .machine .btn-big { margin-bottom: 14px; }
 
-/* ---------- AIで作った画像の印 ---------- */
-.pic.is-ai::after {
-  content: "AI"; position: absolute; right: 3px; bottom: 3px; padding: 0 4px; border-radius: 4px;
-  background: rgba(0, 0, 0, .55); color: #fff; font-size: .56rem; font-weight: 700; line-height: 1.5; letter-spacing: .04em;
-}
-.pic-s.is-ai::after { right: 50%; bottom: 0; transform: translateX(50%); font-size: .5rem; }
 
 /* ==================== 今夜の手段（作る・買う・外で食べる） ==================== */
 .modebar { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px; margin-top: 12px; }
