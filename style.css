@@ -897,18 +897,27 @@ body.art-chara .slot-go-row { padding-top: 26px; }
 /* ==================== 決まった瞬間の画面効果・音のスイッチ（2026-10-07 社長指示） ==================== */
 /* 光の効果を描く、画面いっぱいの透明な板（fx.js）。下のメニューやカードの上、くわしく見る画面の下 */
 .fx-layer { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 30; pointer-events: none; }
-/* 「音」のスイッチ：画面の左下（下のメニューのすぐ上）に浮かぶ、丸い「♪」。入っているときは色を付け、切ってあるときは灰色にして斜めの線を引く */
+/* 「音」のスイッチ：丸い「♪」。入っているときは色を付け、切ってあるときは灰色にして斜めの線を引く。
+   画面には浮かせず、遊びの中に置く（浮かせると、下の写真や文字を隠してしまうため）。
+   ルーレット＝「回す」の行の左端／献立スロット＝「回す」の行の右端（左はキャラクターが立つ場所のため）／占い＝見出しの行の右端 */
 .sound {
-  position: fixed; z-index: 21; left: max(12px, calc(50% - 280px)); bottom: calc(86px + env(safe-area-inset-bottom));
-  width: 46px; height: 46px; padding: 0; display: grid; place-items: center;
-  background: var(--accent); border: 2px solid #fff; border-radius: 50%; color: #fff; font-weight: 700; font-size: 1.35rem; line-height: 1;
-  box-shadow: 0 4px 12px rgba(60, 35, 15, .3);
+  position: relative; flex: none; width: 44px; height: 44px; padding: 0; display: grid; place-items: center;
+  background: var(--accent); border: 2px solid #fff; border-radius: 50%; color: #fff; font-weight: 700; font-size: 1.3rem; line-height: 1;
+  box-shadow: 0 2px 6px rgba(60, 35, 15, .25);
 }
 .sound:hover { filter: brightness(1.06); }
-.sound:active { transform: translateY(2px); box-shadow: 0 1px 4px rgba(60, 35, 15, .3); }
+.sound:active { transform: translateY(2px); box-shadow: 0 1px 3px rgba(60, 35, 15, .25); }
 .sound[aria-checked="false"] { background: #fffdfa; border-color: var(--edge); color: #a39384; }
 .sound[aria-checked="false"]::after { content: ''; position: absolute; left: 50%; top: 50%; width: 30px; height: 2.5px; margin: -1.25px 0 0 -15px; border-radius: 2px; background: #8a7868; transform: rotate(-45deg); }
-body:not([data-view="play"]):not([data-view="fortune"]) > .sound { display: none; }   /* 音が鳴る画面（おまかせ・占い）にだけ出す。ほかの画面では、下の方のボタンや文字を隠してしまうため */
+/* 「回す」の行：ボタンは今までどおり行のまん中。「♪」は行の端に、ボタンと同じ高さで置く */
+.go-row { position: relative; }
+.go-row .sound, .slot-go-row .sound { position: absolute; z-index: 1; left: 0; bottom: 6px; }
+.slot-go-row .sound { left: auto; right: 0; bottom: 20px; }
+/* 占い：見出しの行。左に見出し、右端に「♪」。行が高くなりすぎないように、「♪」は上下に少しはみ出させる */
+.sound-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+.sound-row .eyebrow { margin-bottom: 0; }
+.sound-row .sound { margin: -6px 0; }
+@media (max-width: 359px) { .sound { width: 40px; height: 40px; font-size: 1.2rem; } .go-row .sound { bottom: 8px; } .slot-go-row .sound { bottom: 22px; } }
 /* ルーレット：料理名が見えてから止まるまで、円盤のまわりの光が強まる */
 .wheel-wrap.is-tense #wheel { animation: tense-glow .46s ease-in-out infinite alternate; }
 @keyframes tense-glow {

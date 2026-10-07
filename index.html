@@ -162,7 +162,11 @@
           </div>
         </div>
         <div id="roulette-window" class="window window-result" aria-live="polite">？</div>
-        <button type="button" id="roulette-go" class="btn btn-primary btn-big">回す</button>
+        <!-- 「回す」ボタンと、その行の左端の「♪」（音あり・音なしの切り替え。ルーレット・献立スロット・占いの効果音とBGM。最初は音あり。音は「回す」などを押したときから鳴る） -->
+        <div class="go-row">
+          <button type="button" class="sound" role="switch" aria-checked="true" aria-label="音" hidden>♪</button>
+          <button type="button" id="roulette-go" class="btn btn-primary btn-big">回す</button>
+        </div>
       </div>
       <div id="roulette-result" class="result-slot" data-empty="回すと、ここに料理と写真が出ます"></div>
     </div>
@@ -180,6 +184,8 @@
         <div class="slot-go-row">
           <span id="slot-chara" class="chara-box" aria-hidden="true" hidden><span class="chara"></span></span>
           <button type="button" id="slot-go" class="btn btn-primary btn-big">回す</button>
+          <!-- 「♪」（音あり・音なしの切り替え）。「回す」の左はキャラクターが立つ場所なので、この行だけ右端に置く -->
+          <button type="button" class="sound" role="switch" aria-checked="true" aria-label="音" hidden>♪</button>
         </div>
         <p class="note">回っている列は「推す」を押すと止まります。止まったあと、気に入った列は「固定」を押すと、次に回しても変わりません。</p>
       </div>
@@ -201,7 +207,11 @@
   <!-- 占い -->
   <section id="view-fortune" class="view" aria-label="星座で決める">
     <div class="panel panel-night">
-      <p class="eyebrow">星座別・今日のラッキー晩御飯</p>
+      <!-- 見出しと、その行の右端の「♪」（音あり・音なしの切り替え） -->
+      <div class="sound-row">
+        <p class="eyebrow">星座別・今日のラッキー晩御飯</p>
+        <button type="button" class="sound" role="switch" aria-checked="true" aria-label="音" hidden>♪</button>
+      </div>
       <p class="note">星座を選ぶと、今日のラッキーカラーと、その色の一品が出ます。</p>
       <div id="signs" class="signs"></div>
     </div>
@@ -223,9 +233,6 @@
   <!-- クレジット（占いサイトなど、ほかのサイトと同じ形。2026-10-07 社長指示） -->
   <p class="foot-credit"><span>Uniter-presents © 2025 A.T.L</span> / <span>安らぎプロジェクト</span></p>
 </footer>
-
-<!-- 音あり・音なしの切り替え（ルーレット・献立スロット・占いの効果音とBGM）。画面の左下の「♪」。最初は音あり。音は「回す」などを押したときから鳴る -->
-<button type="button" id="sound" class="sound" role="switch" aria-checked="true" aria-label="音" hidden>♪</button>
 
 <nav class="tabbar" aria-label="メニュー">
   <button type="button" data-view="home" aria-current="page"><img class="tab-img" src="art/ico_today.webp" alt="" width="30" height="30"><span class="ti">今日</span></button>

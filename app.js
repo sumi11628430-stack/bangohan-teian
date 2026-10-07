@@ -358,11 +358,11 @@
   function shake(el) { if (!el) return; el.classList.remove('fx-shake'); void el.offsetWidth; el.classList.add('fx-shake'); setTimeout(() => el.classList.remove('fx-shake'), 400); }
   // 「音」のスイッチの見た目を、いまの設定に合わせる
   function soundLabel() {
-    const b = $('#sound');
-    if (!b) return;
-    b.hidden = !SND.ok;
-    b.setAttribute('aria-checked', String(SND.on));   // 見た目は「♪」だけ。切ってあるときは、スタイル側で斜めの線を引く
-    b.title = SND.on ? '音あり（押すと消えます）' : '音なし（押すと鳴ります）';
+    $$('.sound').forEach(b => {   // 「♪」は、ルーレットと献立スロットの「回す」の行と、占いの見出しの行にある
+      b.hidden = !SND.ok;
+      b.setAttribute('aria-checked', String(SND.on));   // 見た目は「♪」だけ。切ってあるときは、スタイル側で斜めの線を引く
+      b.title = SND.on ? '音あり（押すと消えます）' : '音なし（押すと鳴ります）';
+    });
   }
   function showGame(game) {
     $$('.seg button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.game === game)));
@@ -1550,12 +1550,12 @@
   $('#roulette-go').addEventListener('click', runRoulette);
   // 「音」のスイッチ：音あり・音なしを切り替えて、端末に覚えておく。入れたときは、短い音で「鳴ること」を知らせる
   soundLabel();
-  if ($('#sound')) $('#sound').addEventListener('click', () => {
+  $$('.sound').forEach(b => b.addEventListener('click', () => {
     SND.set(!SND.on);
     soundLabel();
     if (SND.on) { SND.sfx('push'); sceneCheck(); } else sceneNow = '';   // 回している途中で入れたときは、BGMも流しはじめる
     toast(SND.on ? '音を出します（回したときに鳴ります）' : '音を止めました');
-  });
+  }));
   // カットインに使うキャラクターの絵を、先に読み込んでおく
   setTimeout(() => { FX.warm(CHARA_MAIN); FX.warm(CHARA_RARE); }, 1500);
   $('#slot-go').addEventListener('click', runSlot);

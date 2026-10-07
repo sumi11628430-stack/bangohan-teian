@@ -5,7 +5,7 @@
   'use strict';
   const KEY = 'bangohan_sound';
   const AC = window.AudioContext || window.webkitAudioContext;
-  let on = true;   // 音あり・音なし（端末に覚えておく。最初は音あり＝2026-10-07 社長判断。見出しの右上のスイッチで切れる）
+  let on = true;   // 音あり・音なし（端末に覚えておく。最初は音あり＝2026-10-07 社長判断。「♪」のスイッチで切れる）
   try { const v = localStorage.getItem(KEY); if (v != null) on = v === '1'; } catch (e) { /* 覚えられない端末では、毎回「音あり」から */ }
 
   let ctx = null, master = null, sfxBus = null, bgmBus = null, verb = null;
