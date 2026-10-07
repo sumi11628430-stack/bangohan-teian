@@ -823,3 +823,102 @@ body[data-view="top"] { padding-bottom: 0; }
 #today-done .crown { margin: 14px 0 0; }
 #today-done .crown .keep { white-space: nowrap; }
 #today-done .actions { align-items: center; }
+
+/* ==================== ゲームを回すキャラクター：ルーレット（2026-10-05）・献立スロット（2026-10-07）社長指示 ==================== */
+/* 外側（.chara-box）は立つ場所と、歩いてくる・下がる横の動き。内側（.chara）は絵のコマと、その場の動き */
+/* キャラクターが円盤の左下に立つ場所を、舞台の下に空けておく（絵があるときだけ） */
+body.art-chara .wheel-stage { padding-bottom: 60px; }
+/* 足は舞台の下のふちから少し上（回すときに体を傾けても、靴と影が切れない高さ） */
+.chara-box { position: absolute; z-index: 4; height: 0; pointer-events: none; }
+.wheel-wrap .chara-box { bottom: -48px; }
+/* 絵の中でキャラクターが占める大きさが違うので、枠の大きさと位置はキャラクターごとに決める（幅は円盤に対する割合）。
+   枠は正方形。高さは padding-top（幅と同じ割合）で作る（古いブラウザでも高さが出るように） */
+.wheel-wrap .chara-box[data-who="musubi"] { left: -2%; width: 60%; padding-top: 60%; }
+.wheel-wrap .chara-box[data-who="kimono"] { left: -7%; width: 58%; padding-top: 58%; }
+/* 献立スロット：筐体の左のふちの外から歩いてきて、「回す」ボタンの左（ここで決めている位置）に立つ。
+   列の下の「推す」が押されたら、その列まで行ってタッチする（立ち位置はプログラムが決める）。筐体からのはみ出しは切る。
+   頭が「固定」ボタンにかからないように、ボタンの上を少し空ける（どちらも、絵があるときだけ）。--cw＝枠の大きさ */
+.slot-go-row { position: relative; }
+body.art-chara .machine { position: relative; overflow: hidden; }
+body.art-chara .slot-go-row { padding-top: 26px; }
+.slot-go-row .chara-box { bottom: 6px; width: var(--cw); padding-top: var(--cw); }
+.slot-go-row .chara-box[data-who="musubi"] { --cw: clamp(128px, 40vw, 160px); left: max(-7px, calc(50% - 63px - var(--cw) * .74)); }
+.slot-go-row .chara-box[data-who="kimono"] { --cw: clamp(92px, 27vw, 108px); left: max(-14px, calc(50% - 63px - var(--cw) * .70)); }
+.chara {
+  position: absolute; top: 0; left: 0; display: block; width: 100%; height: 100%; background: 80% 0 / 600% 100% no-repeat;  /* 6コマを横に並べた絵。何も指定が無いときは「見守る」のコマ */
+  filter: drop-shadow(0 4px 4px rgba(40, 10, 0, .4)); transform-origin: 40% 98%;
+}
+.chara-box[data-who="musubi"] .chara { background-image: url(art/chara_musubi.webp); }
+.chara-box[data-who="kimono"] .chara { background-image: url(art/chara_kimono.webp); }
+/* 歩く：2コマを交互に出しながら、少し弾む。外側は、舞台の左の外（--from）から立つ場所まで動く */
+.wheel-wrap .chara-box[data-pose="walk"] { animation: chara-in 1300ms linear both; }
+.chara-box[data-pose="walk"] .chara { animation: chara-walk .36s steps(1) infinite, chara-bob .18s ease-in-out infinite alternate; }
+.chara-box[data-pose="reach"] .chara { background-position: 40% 0; animation: chara-reach .38s ease-out both; }
+.chara-box[data-pose="swing"] .chara { background-position: 60% 0; animation: chara-swing .42s ease-out both; }
+.chara-box[data-pose="watch"] .chara { background-position: 80% 0; animation: chara-bob .5s ease-in-out infinite alternate; }
+.chara-box[data-pose="cheer"] .chara { background-position: 100% 0; animation: chara-jump .5s ease-out 3; }
+.wheel-wrap .chara-box[data-pose="out"] { animation: chara-out 350ms ease-in both; }
+.slot-go-row .chara-box[data-pose="out"] { animation: chara-fade 350ms ease-in both; }
+/* スロット：ぴょんと跳んで「推す」にタッチ（--hop＝手が届く高さ）／前を向いたまま跳ねて左へ戻る／やったーと跳ねながら定位置へ戻る／両手で献立を案内する */
+.chara-box[data-pose="touch"] .chara { background-position: 40% 0; animation: chara-touch .45s ease-out both; }
+.chara-box[data-pose="back"] .chara { background-position: 80% 0; animation: chara-skip .2s ease-out infinite; }
+.chara-box[data-pose="hop"] .chara { background-position: 100% 0; animation: chara-skip .31s ease-out infinite; }
+.chara-box[data-pose="present"] .chara { background-position: 60% 0; animation: chara-present .45s ease-out both; }
+@keyframes chara-in { from { transform: translateX(var(--from, -160px)); } to { transform: none; } }
+@keyframes chara-out { from { transform: none; opacity: 1; } to { transform: translateX(var(--from, -160px)); opacity: 0; } }
+@keyframes chara-walk { 0% { background-position: 0% 0; } 50% { background-position: 20% 0; } }
+@keyframes chara-bob { from { transform: translateY(0); } to { transform: translateY(-3%); } }
+@keyframes chara-reach { from { transform: translateY(0) scaleY(.96); } to { transform: translateY(-2%) scaleY(1.02); } }
+@keyframes chara-swing { 0% { transform: rotate(-8deg); } 55% { transform: rotate(7deg); } 100% { transform: rotate(0); } }
+@keyframes chara-jump { 0%, 100% { transform: translateY(0); } 40% { transform: translateY(-14%); } }
+@keyframes chara-fade { to { opacity: 0; } }
+@keyframes chara-touch { 0%, 100% { transform: translateY(0); } 38% { transform: translateY(calc(-1 * var(--hop, 16px))); } }
+@keyframes chara-skip { 0%, 100% { transform: translateY(0); } 45% { transform: translateY(-11%); } }
+@keyframes chara-present { 0% { transform: scale(.92); } 60% { transform: scale(1.05); } 100% { transform: none; } }
+/* スロットの列：止めるまで流し続ける。6品を2回並べてあるので、半分まで流したら頭に戻す */
+.reelwin.is-spinning .strip { animation: reel-loop .5s linear infinite; }
+@keyframes reel-loop { to { transform: translateY(-50%); } }
+/* 列の下のボタン：回っている間（「推す」）は明るく光らせて、押せることを見せる。押されたら（キャラクターを待つ間）金色にする。タッチされたら、押しこんだ見た目にする */
+.machine .hold { transition: transform .12s ease; }
+.machine .hold.is-live { background: #cf3a24; border-color: #ffe58a; color: #fff; font-weight: 700; animation: hold-glow .9s ease-in-out infinite alternate; }
+.machine .hold.is-wait { background: #ffd166; border-color: #fff3c4; color: #5a1a10; font-weight: 700; }
+@keyframes hold-glow { from { box-shadow: 0 0 4px rgba(255, 209, 102, .5); } to { box-shadow: 0 0 14px 2px rgba(255, 209, 102, .95); } }
+.machine .hold.is-touched { transform: translateY(3px) scale(.95); background: #ffd166; border-color: #ffd166; color: #5a1a10; }
+@media (prefers-reduced-motion: reduce) { .chara-box, .chara, .reelwin.is-spinning .strip, .machine .hold.is-live { animation: none !important; } }
+
+/* フッターのクレジット（ほかのサイトと同じ形。幅が狭いときは「/」の前後で折り返す） */
+.foot-credit { margin-top: 12px; text-align: center; font-size: .72rem; letter-spacing: .04em; }
+.foot-credit span { white-space: nowrap; }
+
+/* ==================== 決まった瞬間の画面効果・音のスイッチ（2026-10-07 社長指示） ==================== */
+/* 光の効果を描く、画面いっぱいの透明な板（fx.js）。下のメニューやカードの上、くわしく見る画面の下 */
+.fx-layer { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 30; pointer-events: none; }
+/* 「音」のスイッチ：見出しの右上。入っているときは色を付ける */
+.sound {
+  position: absolute; right: 12px; top: 14px; min-height: 40px; padding: 4px 14px;
+  background: #fff; border: 1.5px solid var(--line); border-radius: 999px; font-weight: 700; font-size: .9rem; color: #6b584a;
+  box-shadow: var(--press);
+}
+.sound:hover { border-color: var(--accent); }
+.sound:active { transform: translateY(2px); box-shadow: none; }
+.sound[aria-checked="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+/* ルーレット：料理名が見えてから止まるまで、円盤のまわりの光が強まる */
+.wheel-wrap.is-tense #wheel { animation: tense-glow .46s ease-in-out infinite alternate; }
+@keyframes tense-glow {
+  from { box-shadow: 0 8px 22px rgba(60, 20, 0, .45), 0 0 0 0 rgba(255, 209, 102, 0); }
+  to { box-shadow: 0 8px 22px rgba(60, 20, 0, .45), 0 0 30px 10px rgba(255, 209, 102, .8); }
+}
+/* 献立スロット：あと1列になったら、まだ回っている列を光らせる */
+.machine.is-reach .reelwin.is-spinning { animation: reach-glow .4s ease-in-out infinite alternate; }
+@keyframes reach-glow {
+  from { box-shadow: 0 0 0 0 rgba(255, 150, 80, 0); border-color: #ffd166; }
+  to { box-shadow: 0 0 20px 7px rgba(255, 150, 80, .9); border-color: #fff3c4; }
+}
+/* 決まった瞬間に、舞台を小さく揺らす（すぐおさまる） */
+.fx-shake { animation: fx-shake .32s ease-out; }
+.machine.is-win.fx-shake { animation: fx-shake .32s ease-out, machine-win 1s ease 2; }
+@keyframes fx-shake {
+  0% { transform: translate(0, 0); } 15% { transform: translate(-5px, 3px); } 30% { transform: translate(5px, -3px); }
+  50% { transform: translate(-3px, 2px); } 70% { transform: translate(2px, -1px); } 100% { transform: translate(0, 0); }
+}
+@media (prefers-reduced-motion: reduce) { .wheel-wrap.is-tense #wheel, .machine.is-reach .reelwin.is-spinning, .fx-shake { animation: none; } }

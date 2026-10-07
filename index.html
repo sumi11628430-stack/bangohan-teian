@@ -42,6 +42,8 @@
 
 <header class="top">
   <button type="button" id="back" class="back" hidden>← 戻る</button>
+  <!-- 音あり・音なしの切り替え（ルーレット・献立スロット・占いの効果音とBGM。最初は音あり。音は「回す」などを押したときから鳴る） -->
+  <button type="button" id="sound" class="sound" role="switch" aria-checked="true" hidden>♪ 音あり</button>
   <h1><a href="#top" class="home-link" aria-label="毎日の晩御飯の提案（トップ画面へ）">毎日の晩御飯の提案</a></h1>
   <p class="lead">今夜のごはん、30秒で決めよう</p>
 </header>
@@ -159,6 +161,8 @@
             <span class="wheel-pin" aria-hidden="true"></span>
             <canvas id="wheel" width="640" height="640" aria-hidden="true"></canvas>
             <span class="wheel-hub" aria-hidden="true"></span>
+            <!-- 円盤を回すキャラクター（「回す」を押すと、舞台の横から歩いてくる） -->
+            <span id="chara" class="chara-box" aria-hidden="true" hidden><span class="chara"></span></span>
           </div>
         </div>
         <div id="roulette-window" class="window window-result" aria-live="polite">？</div>
@@ -171,13 +175,17 @@
       <div class="panel center machine">
         <div class="marquee"><span>今夜の献立スロット</span></div>
         <div class="reels">
-          <div class="reel"><span class="reel-label">主菜</span><div class="reelwin" data-reel="0"><div class="strip"><div class="cell"><span class="cell-q">？</span></div></div></div><button type="button" class="hold" data-hold="0" aria-pressed="false">固定</button></div>
-          <div class="reel"><span class="reel-label">副菜</span><div class="reelwin" data-reel="1"><div class="strip"><div class="cell"><span class="cell-q">？</span></div></div></div><button type="button" class="hold" data-hold="1" aria-pressed="false">固定</button></div>
-          <div class="reel"><span class="reel-label">汁物</span><div class="reelwin" data-reel="2"><div class="strip"><div class="cell"><span class="cell-q">？</span></div></div></div><button type="button" class="hold" data-hold="2" aria-pressed="false">固定</button></div>
+          <div class="reel"><span class="reel-label">主菜</span><div class="reelwin" data-reel="0"><div class="strip"><div class="cell"><span class="cell-q">？</span></div></div></div><button type="button" class="hold" data-hold="0" aria-pressed="false">推す</button></div>
+          <div class="reel"><span class="reel-label">副菜</span><div class="reelwin" data-reel="1"><div class="strip"><div class="cell"><span class="cell-q">？</span></div></div></div><button type="button" class="hold" data-hold="1" aria-pressed="false">推す</button></div>
+          <div class="reel"><span class="reel-label">汁物</span><div class="reelwin" data-reel="2"><div class="strip"><div class="cell"><span class="cell-q">？</span></div></div></div><button type="button" class="hold" data-hold="2" aria-pressed="false">推す</button></div>
         </div>
         <p class="note" id="slot-none" hidden></p>
-        <button type="button" id="slot-go" class="btn btn-primary btn-big">回す</button>
-        <p class="note">気に入った列は「固定」を押すと、次に回しても変わりません。</p>
+        <!-- 「回す」ボタンと、キャラクター（「回す」を押すと筐体の横から歩いてきて、ボタンの左に立つ。列の「推す」が押されたら、その列まで行ってタッチして止める） -->
+        <div class="slot-go-row">
+          <span id="slot-chara" class="chara-box" aria-hidden="true" hidden><span class="chara"></span></span>
+          <button type="button" id="slot-go" class="btn btn-primary btn-big">回す</button>
+        </div>
+        <p class="note">回っている列は「推す」を押すと止まります。止まったあと、気に入った列は「固定」を押すと、次に回しても変わりません。</p>
       </div>
       <div id="slot-result" class="result-slot" data-empty="回すと、ここに今夜の献立が出ます"></div>
     </div>
@@ -216,6 +224,8 @@
     <p>写真は Wikimedia Commons で公開されているものを、各写真のライセンスに従って出典つきで掲載しています。料理名を押すと、写真の公開ページ（作者・ライセンスの原文）が開きます。</p>
     <ul id="credits"></ul>
   </details>
+  <!-- クレジット（占いサイトなど、ほかのサイトと同じ形。2026-10-07 社長指示） -->
+  <p class="foot-credit"><span>Uniter-presents © 2025 A.T.L</span> / <span>安らぎプロジェクト</span></p>
 </footer>
 
 <nav class="tabbar" aria-label="メニュー">
@@ -274,6 +284,8 @@
 <script src="photos.js"></script>
 <script src="genphotos.js"></script>
 <script src="art.js"></script>
+<script src="sound.js"></script>
+<script src="fx.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

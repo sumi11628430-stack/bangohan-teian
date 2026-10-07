@@ -118,6 +118,20 @@
     return e;
   }
   const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // 効果音・BGM（sound.js）と、決まった瞬間の画面効果（fx.js）。読み込めていないときは、何もしない代わりを使う
+  const SND = window.SND || { sfx() {}, ticks() {}, scene() {}, hot() {}, cut() {}, hush() {}, set() {}, on: false, ok: false };
+  const FX = window.FX || { play() {}, warm() {} };
+  const SAKURA_FX = ['#ffd1dc', '#fff0f5', '#ff9eb5', '#ffd166'];   // 着物のコンシェルジュのときの光の色（桜色）
+  // 円盤の動き（cubic-bezier(.1, .62, .08, 1)）で、回し始めから何秒後に何度回っているかを求める（針の音を、回る速さに合わせるため）
+  function wheelTicks(total, ms) {
+    const bez = (u, a, b) => 3 * (1 - u) * (1 - u) * u * a + 3 * (1 - u) * u * u * b + u * u * u, out = [];
+    let next = 18, last = -1;   // 針がマスの境目をはじくのは、18度・54度・90度…回ったとき
+    for (let i = 1; i <= 2000; i++) {
+      const u = i / 2000, t = bez(u, .1, .08) * ms / 1000, deg = bez(u, .62, 1) * total;
+      while (deg >= next) { if (t - last >= .05) { out.push(t); last = t; } next += 36; }   // 速すぎる所は間引く（1秒に20回まで）
+    }
+    return out;
+  }
   function shuffle(list) {
     const a = list.slice();
     for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
@@ -145,13 +159,12 @@
     };
   }
 
-  // 決まった瞬間の紙吹雪（四角・丸・細長い紙が、中央と左右の下から舞う）
-  function confetti() {
+  // 決まった瞬間の紙吹雪（四角・丸・細長い紙が、中央と左右の下から舞う）。cols＝紙の色（指定が無ければ、いつもの色）
+  function confetti(cols = ['#e8632a', '#f6bd60', '#84a59d', '#f28482', '#5ba85b', '#ffd166', '#6fa8ff']) {
     if (reduceMotion) return;
     const c = h('canvas', { class: 'confetti' });
     document.body.append(c);
     const W = c.width = window.innerWidth, H = c.height = window.innerHeight, x = c.getContext('2d');
-    const cols = ['#e8632a', '#f6bd60', '#84a59d', '#f28482', '#5ba85b', '#ffd166', '#6fa8ff'];
     const ps = Array.from({ length: 130 }, (_, i) => {
       const from = i % 3;  // 0=中央 1=左下 2=右下
       return {
@@ -317,6 +330,28 @@
     if (view === 'play') updatePoolNote();
     window.scrollTo(0, 0);
   }
+  // いま流しているBGMの場面（roulette・slot・fortune。流していなければ空）
+  let sceneNow = '';
+  function playScene(name) { sceneNow = name; SND.scene(name); }
+  // 遊びの音は、その遊びの画面にいる間だけ鳴らす（回している途中で別の画面へ移ったら、そのあとの音は鳴らさない）
+  function gameSfx(name, o) { if (sceneNow) SND.sfx(name, o); }
+  // 画面を切り替えたあと：BGMの場面と違う画面にいるなら、BGMを止める
+  function sceneCheck() {
+    if (!sceneNow) return;
+    const view = document.body.dataset.view, game = ($('.game.is-active') || {}).id;
+    const here = view === 'fortune' ? 'fortune' : view === 'play' && game === 'game-roulette' ? 'roulette' : view === 'play' && game === 'game-slot' ? 'slot' : '';
+    if (here !== sceneNow) { sceneNow = ''; SND.scene(null); SND.cut(); }   // 予約してある音（針の音など）も止める
+  }
+  // 決まった瞬間に、舞台を小さく揺らす（動きを減らす設定のときは、スタイル側で止める）
+  function shake(el) { if (!el) return; el.classList.remove('fx-shake'); void el.offsetWidth; el.classList.add('fx-shake'); setTimeout(() => el.classList.remove('fx-shake'), 400); }
+  // 「音」のスイッチの見た目を、いまの設定に合わせる
+  function soundLabel() {
+    const b = $('#sound');
+    if (!b) return;
+    b.hidden = !SND.ok;
+    b.setAttribute('aria-checked', String(SND.on));
+    b.textContent = SND.on ? '♪ 音あり' : '♪ 音なし';
+  }
   function showGame(game) {
     $$('.seg button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.game === game)));
     $$('.game').forEach(g => g.classList.toggle('is-active', g.id === 'game-' + game));
@@ -337,6 +372,7 @@
     $('#back').hidden = here === 'top';
     // 押したボタンやリンクが切り替えで隠れたときは、新しい画面の見出しにフォーカスを移す（キーボード・読み上げで迷子にならないように）
     if (held && held !== document.body && !held.getClientRects().length) $(document.body.dataset.view === 'top' ? '.top-title' : '.home-link').focus({ preventScroll: true });
+    sceneCheck();
   }
   function go(place) {
     if (place !== here) {
@@ -560,14 +596,91 @@
     const wheel = $('#wheel'), wrap = $('.wheel-wrap');
     wheelDeg = 0;
     wheel.style.transition = 'none'; wheel.style.transform = 'none';
-    wrap.classList.remove('is-win', 'is-spinning');
+    wrap.classList.remove('is-win', 'is-spinning', 'is-tense');
+    SND.cut(); SND.hot(false);   // 回っている途中で最初の状態に戻したときは、予約してある音もやめる
     drawWheel(new Array(WHEEL_N).fill(null), -1);
     const win = $('#roulette-window');
     win.classList.remove('is-done'); win.textContent = '？';
     $('#roulette-go').textContent = '回す';
     $('#roulette-result').replaceChildren();
+    wheelChara.reset();
     updatePoolNote();
   }
+
+  // ---------- ゲームに出てくるキャラクター（ルーレット・献立スロット） ----------
+  // 「回す」を押すと、横からキャラクターが歩いてくる。ルーレットでは円盤を回し、献立スロットでは回っている列を止める（スロットの動きは、スロットの節）。
+  // ふだんは MUSUBI（おにぎりのコンシェルジュ）、たまに（RARE_RATE の割合で）着物のコンシェルジュが出る（2026-10-05 社長指示）
+  // 絵は6コマ（歩く1・歩く2・手を伸ばす・回す・見守る・喜ぶ）。どのコマを出すかは data-pose でスタイル側が決める
+  const CHARA_MAIN = ART.chara_musubi ? 'musubi' : '', CHARA_RARE = ART.chara_kimono ? 'kimono' : '';
+  const RARE_RATE = 0.10;   // 着物のコンシェルジュが出る割合（10%＝平均で10回に1回。回すたびに毎回くじを引く。2026-10-07 社長指示）
+  const WALK_MS = 1300, REACH_MS = 380, SWING_MS = 420, OUT_MS = 350;   // 歩く・手を伸ばす・回す・退場の長さ（スタイル側の動きと合わせる）
+  const SAKURA = ['#ffd1dc', '#ffb7c5', '#ff9eb5', '#fff0f5', '#ffd166'];  // 着物のコンシェルジュのときの紙吹雪（桜色）
+  const CHEER_MS = 900;     // 止まったあと、喜ぶ姿を見せてから結果のカードへ画面を送るまでの長さ
+  // 絵は先に読み込んでおく。読み込めていないキャラクターは出さない（歩いてくる間、何も見えないことが無いように）
+  const charaImg = {};
+  function charaLoad(who) {
+    if (who && !charaImg[who]) { charaImg[who] = new Image(); charaImg[who].src = `art/chara_${who}.webp`; }
+  }
+  const charaReady = who => !!who && !!charaImg[who] && charaImg[who].complete && charaImg[who].naturalWidth > 0;
+  // だれを出すか：RARE_RATE の割合で着物のコンシェルジュ。絵がまだ読み込めていないときは、いま出ているキャラクター（now）のまま。だれも出せなければ空
+  function charaPick(now) {
+    charaLoad(CHARA_MAIN); charaLoad(CHARA_RARE);
+    const who = Math.random() < RARE_RATE && charaReady(CHARA_RARE) ? CHARA_RARE : CHARA_MAIN;
+    return charaReady(who) ? who : now;
+  }
+  // ルーレット用の動き。box＝キャラクターの枠（.chara-box）。無いとき（前の版の画面が端末に残っていて、プログラムだけ新しいとき）は、キャラクターなしで動く
+  // stage＝はみ出しを切っている親。キャラクターは、その左のふちの外から歩いてくる
+  function makeChara(box, stage) {
+    let on = '';     // いま出ているキャラクター（いなければ空）
+    let timer = 0;   // 「喜ぶ姿を見せてから、結果のカードへ画面を送る」の予約
+    const pose = p => { if (box) box.dataset.pose = p; };
+    return {
+      rare: () => !!on && on === CHARA_RARE,
+      cancel() { clearTimeout(timer); },   // 次に回すときは、前の回の予約を取り消す
+      reset() {                            // 最初の状態に戻す（キャラクターを下げる）
+        clearTimeout(timer);
+        on = '';
+        if (box) { box.hidden = true; box.dataset.pose = ''; }
+      },
+      // 回す前の動き。キャラクターが手をかけて回した瞬間に then を呼ぶ（then の中で、円盤やリールを回し始める）
+      // at＝押したときの番号。途中でしぼり込みが変わって番号が進んだら、続きの動きはしない
+      spin(at, then) {
+        if (!box || !stage) { then(); return; }
+        const who = charaPick(on);
+        if (!who) { then(); return; }               // だれも出せないときは、キャラクターなしで回す
+        const step = (ms, fn) => setTimeout(() => { if (at === epoch) fn(); }, ms);
+        const show = () => { on = who; box.dataset.who = who; box.hidden = false; };
+        if (reduceMotion) { show(); pose('watch'); then(); return; }  // 動きを減らす設定のときは、歩かせずに立たせるだけ
+        const swing = () => {
+          pose('reach');
+          step(REACH_MS, () => { pose('swing'); then(); step(SWING_MS, () => { if (box.dataset.pose === 'swing') pose('watch'); }); });
+        };
+        const enter = () => {
+          show();
+          pose('');
+          // 左のふちの外から、立つ場所まで歩く（歩く距離は画面の幅で変わるので、その場で測る）
+          const from = box.getBoundingClientRect().right - stage.getBoundingClientRect().left;
+          if (from <= 0) { swing(); return; }   // 別の画面へ移っていて測れないときは、歩かせずに立たせて回す
+          box.style.setProperty('--from', `${-Math.ceil(from)}px`);
+          void box.offsetWidth;
+          pose('walk');
+          if (who === CHARA_RARE) gameSfx('rare');
+          step(WALK_MS, swing);
+        };
+        if (on === who) swing();                                 // 同じキャラクターがもういる：歩き直さず、その場で回す
+        else if (on) { pose('out'); step(OUT_MS, enter); }       // 交代：いまのキャラクターが下がってから、次が歩いてくる
+        else enter();
+      },
+      // 止まったあと：喜ぶ姿（kind＝cheer：跳ねる）を少し見せてから after を呼ぶ。キャラクターがいなければ、すぐ呼ぶ
+      cheer(kind, at, after) {
+        if (!on) { after(); return; }
+        pose(kind);
+        if (reduceMotion) after();
+        else timer = setTimeout(() => { if (at === epoch) after(); }, CHEER_MS);
+      },
+    };
+  }
+  const wheelChara = makeChara($('#chara'), $('.wheel-stage'));   // ルーレット：円盤の左下に立つ
   function updatePoolNote() {
     const n = roulettePool().length;
     const what = { any: '今の季節に合う主役の料理', buy: '買って帰れる主役の料理', out: '外で食べられる主役の料理' }[mode];
@@ -578,6 +691,8 @@
     const pool = roulettePool();
     if (!pool.length || wheelBusy) return;
     wheelBusy = true;
+    wheelChara.cancel();  // 前の回の「結果のカードへ画面を送る」が残っていたら取り消す
+    playScene('roulette'); gameSfx('tap');
     const btn = $('#roulette-go'), win = $('#roulette-window'), wheel = $('#wheel'), wrap = $('.wheel-wrap');
     btn.disabled = true;
     $('#roulette-result').replaceChildren();
@@ -607,21 +722,39 @@
       btn.disabled = false;
       btn.textContent = 'もう一回';
       $('#roulette-result').replaceChildren(h('div', { class: 'panel panel-win reveal' }, h('p', { class: 'crown', text: '今夜はこれ！' }), dishCard(final)));
-      bringIntoView($('#roulette-result'));
-      confetti();
+      // キャラクターがいるときは、喜ぶ姿（跳ねる）を少し見せてから、結果のカードへ画面を送る
+      wheelChara.cheer('cheer', at, () => bringIntoView($('#roulette-result')));
+      // 決まった瞬間：魔法が発動するような光と音（画面効果が使えないときは、紙吹雪）
+      wrap.classList.remove('is-tense');
+      SND.hot(false);
+      if (!wrap.getClientRects().length) return;   // 別の画面へ移っているときは、何も出さない
+      gameSfx('win-roulette');
+      if (window.FX && !reduceMotion) { FX.play('magic', wrap, { palette: wheelChara.rare() ? SAKURA_FX : undefined }); shake($('.wheel-stage')); }
+      else confetti(wheelChara.rare() ? SAKURA : undefined);
     };
-    if (reduceMotion) {
+    // 円盤を回し始める（キャラクターがいるときは、キャラクターが回した瞬間に呼ばれる）
+    const start = () => {
+      if (reduceMotion) {
+        wheel.style.transform = `rotate(${wheelDeg}deg)`;
+        finish();
+        return;
+      }
+      void wheel.offsetWidth;  // 向きを戻した状態を一度確定させてから回す
+      wrap.classList.add('is-spinning');
+      wheelDeg += 360 * 7;
+      wheel.style.transition = `transform ${SPIN_MS}ms cubic-bezier(.1, .62, .08, 1)`;
       wheel.style.transform = `rotate(${wheelDeg}deg)`;
-      finish();
-      return;
-    }
-    void wheel.offsetWidth;  // 向きを戻した状態を一度確定させてから回す
-    wrap.classList.add('is-spinning');
-    wheelDeg += 360 * 7;
-    wheel.style.transition = `transform ${SPIN_MS}ms cubic-bezier(.1, .62, .08, 1)`;
-    wheel.style.transform = `rotate(${wheelDeg}deg)`;
-    setTimeout(() => { if (at === epoch) drawWheel(items, -1); }, SPIN_MS - OPEN_MS);  // 止まる2秒前に「？」を料理名に変える
-    setTimeout(finish, SPIN_MS + 100);
+      gameSfx('spin'); SND.hot(true); if (sceneNow) SND.ticks(wheelTicks(wheelDeg, SPIN_MS));   // 回り始めの音と、針がマスをはじく音（回る速さに合わせる）
+      setTimeout(() => {   // 止まる2秒前に「？」を料理名に変える。ここから、決まるまで音と光を高めていく
+        if (at !== epoch) return;
+        drawWheel(items, -1);
+        wrap.classList.add('is-tense');
+        gameSfx('riser', { d: OPEN_MS / 1000 - .2 });
+      }, SPIN_MS - OPEN_MS);
+      setTimeout(() => { if (at === epoch) SND.hush(.5); }, SPIN_MS - 220);   // 決まる直前の「間」：BGMを一瞬しずめる
+      setTimeout(finish, SPIN_MS + 100);
+    };
+    wheelChara.spin(at, start);
   }
 
   // ---------- 献立スロット ----------
@@ -629,31 +762,78 @@
   const slot = [null, null, null];
   const held = [false, false, false];
   const cell = d => h('div', { class: 'cell' }, d ? [pic(d, 'pic-m'), h('span', { class: 'cell-name', text: d.name })] : h('span', { class: 'cell-q', text: '？' }));
+  const reelState = [0, 0, 0];              // 列の様子：0＝止まっている／1＝回っている／2＝止まりかけ／3＝回っていて、「推す」が押された（キャラクターが止めに来るのを待っている）
+  const reelStop = [null, null, null];      // 回っている列を止める関数
+  const REEL_STOP_MS = 360;                 // 「推す」を押してから、列が止まるまでの長さ
+  // 要素にいま掛かっている動き（transform）の、横・縦のずれ（px）を画面から読む。動いている最中の、その瞬間の位置が分かる
+  const shiftOf = el => {
+    const m = /^matrix(3d)?\(([^)]+)\)/.exec(getComputedStyle(el).transform);
+    if (!m) return [0, 0];
+    const v = m[2].split(',').map(Number);
+    return m[1] ? [v[12], v[13]] : [v[4], v[5]];
+  };
+  let slotRun = 0;                          // 何回目の「回す」か（前の回の予約が、次の回の列を止めてしまわないように見分ける）
+  let slotIdle = 0;                         // 「推す」が押されないままのときに、残りの列を止める予約
 
-  // 写真と名前を縦に流してから止める
-  function spinReel(win, pool, ms, final, done) {
-    const strip = win.firstElementChild;
+  // 列の下のボタン：回っている間は「推す」（押すと、キャラクターがその列を止めに行く）。料理が出て止まったら「固定」（押すと、次に回しても変わらない）
+  function holdLabels() {
+    $$('.hold').forEach(b => {
+      const i = Number(b.dataset.hold);
+      const fix = !!slot[i] && !reelState[i];
+      b.textContent = fix ? '固定' : '推す';
+      if (fix) b.setAttribute('aria-pressed', String(held[i])); else b.removeAttribute('aria-pressed');   // 読み上げ用：「固定」のときだけ、押してある・いないを伝える
+      b.classList.toggle('is-live', reelState[i] === 1);   // 回っている（押せる）
+      b.classList.toggle('is-wait', reelState[i] === 3);   // 押された（キャラクターが止めに来るのを待っている）
+    });
+  }
+  // 列を止める（キャラクターが「推す」にタッチしたとき。キャラクターがいないときは、使う人が押したとき）
+  function pushReel(i) {
+    if (reelState[i] !== 1 && reelState[i] !== 3) return;
+    gameSfx('reelstop');
+    const b = $(`[data-hold="${i}"]`);
+    b.classList.add('is-touched');
+    setTimeout(() => b.classList.remove('is-touched'), 280);
+    reelStop[i]();
+  }
+
+  // 列を回し始める：止めるまで、写真と名前を縦に流し続ける。動きを減らす設定のときは、回さずにすぐ結果を出す
+  function spinReel(i, pool, final, done) {
+    const win = $(`[data-reel="${i}"]`), strip = win.firstElementChild;
     const at = epoch;
+    let last = null;   // 止まる料理のマス（回し始めに作る）
     const settle = () => {
       if (at !== epoch) return;  // 回っている途中でしぼり込みが変わった
       strip.style.transition = 'none'; strip.style.transform = 'none';
-      strip.replaceChildren(cell(final));
+      strip.replaceChildren(last || cell(final));
       win.classList.remove('is-spinning'); win.classList.add('is-done');
+      reelState[i] = 0; reelStop[i] = null;
       done();
     };
     win.classList.remove('is-done');
     if (reduceMotion) { settle(); return; }
     const sample = shuffle(pool).slice(0, 6);  // 流す料理は6品を使い回す（読み込む写真を増やしすぎない）
-    const list = Array.from({ length: 17 }, (_, i) => sample[i % sample.length]).concat(final);
-    strip.replaceChildren(...list.map(cell));
-    strip.style.transition = 'none';
-    strip.style.transform = 'translateY(0)';
-    void strip.offsetHeight;  // ここで一度位置を確定させてから動かす
+    const loop = Array.from({ length: 6 }, (_, k) => sample[k % sample.length]);
+    last = cell(final);                        // 止まる料理のマス。ここで作っておくと、回っている間に写真が読み込まれる
+    // 6品を2回並べて、半分まで流したら頭に戻す（つなぎ目が見えない）。流す動きはスタイル側（.is-spinning）
+    strip.style.transition = 'none'; strip.style.transform = '';
+    strip.replaceChildren(...loop.concat(loop).map(cell));
     win.classList.add('is-spinning');
-    strip.style.transition = `transform ${ms}ms cubic-bezier(.15, .7, .2, 1)`;
-    // 最後のマス（当たり）の位置まで、実際の高さを測って動かす
-    strip.style.transform = `translateY(${strip.firstElementChild.offsetTop - strip.lastElementChild.offsetTop}px)`;
-    setTimeout(settle, ms + 80);
+    reelState[i] = 1;
+    reelStop[i] = () => {
+      if (at !== epoch || (reelState[i] !== 1 && reelState[i] !== 3)) return;
+      reelState[i] = 2;
+      // 流すのをやめて、いま見えている所から3品ぶん送って、結果で止める
+      const high = strip.firstElementChild.offsetHeight || 1, y = Math.max(0, -shiftOf(strip)[1]);
+      const k = Math.floor(y / high);           // いま、いちばん上に見えているマスの番号
+      win.classList.remove('is-spinning');
+      strip.replaceChildren(cell(loop[k % 6]), cell(loop[(k + 1) % 6]), cell(loop[(k + 2) % 6]), last);
+      strip.style.transform = `translateY(${-(y - k * high)}px)`;
+      void strip.offsetHeight;  // ここで一度位置を確定させてから動かす
+      strip.style.transition = `transform ${REEL_STOP_MS}ms cubic-bezier(.2, .9, .3, 1)`;
+      strip.style.transform = `translateY(${strip.firstElementChild.offsetTop - strip.lastElementChild.offsetTop}px)`;
+      holdLabels();
+      setTimeout(settle, REEL_STOP_MS + 60);
+    };
   }
   // そのしぼり込みで候補が無い列（「買える料理」の汁物など）は、回さずに「なし」と見せて理由を書く
   function markReels() {
@@ -671,33 +851,188 @@
     note.textContent = none.length === REELS.length ? `${what}料理の候補がありません。`
       : none.length ? `${what}${none.join('・')}の候補が無いので、ほかの列だけ回します。` : '';
     $('#slot-go').disabled = none.length === REELS.length;
+    holdLabels();
   }
+
+  // 献立スロットのキャラクター：使う人が「推す」を押すと、その列のボタンまで行って、ぴょんと跳んでタッチして止める（押された順に）。
+  // 全部止まったら、跳ねながら定位置（「回す」ボタンの左）へ戻って、両手で献立を案内する（2026-10-07 社長指示）
+  // 絵の中の位置（枠の大きさに対する割合）：hand＝手を伸ばしたときの手の横の位置／top＝そのときの手の高さ（上から）／body＝体の左はし
+  const SLOT_FIT = { musubi: { hand: .74, top: .45, body: .05 }, kimono: { hand: .66, top: .03, body: .18 } };
+  const TOUCH_MS = 450, TOUCH_AT = 170;     // タッチの動きの長さと、そのうち手がボタンに届くまでの長さ
+  const PRESENT_MS = 700;                   // 案内する姿を見せてから、結果のカードへ画面を送るまでの長さ
+  const IDLE_MS = 8000;                     // 「推す」が押されないまま、これだけたったら、キャラクターが残りの列を止めに行く
+  const slotChara = (() => {
+    const box = $('#slot-chara'), stage = $('.machine');
+    let on = '';        // いま出ているキャラクター（いなければ空）
+    let timer = 0;      // 「案内する姿を見せてから、結果のカードへ画面を送る」の予約
+    let seq = 0;        // 動きの通し番号（新しい動きが始まったら、前の動きの続きはしない）
+    let cur = 0;        // 定位置からの横のずれ（px）
+    let duty = null;    // この回の仕事：{ at＝押したときの番号, my＝通し番号, queue＝止めに行く列（押された順）, ready＝持ち場に着いたか, busy＝止めに行っている最中か }
+    const pose = p => { box.dataset.pose = p; };
+    const move = (dx, ms) => { box.style.transition = ms ? `transform ${ms}ms linear` : 'none'; box.style.transform = `translateX(${dx}px)`; cur = dx; };
+    const show = who => { on = who; box.dataset.who = who; box.hidden = false; };
+    // いま実際にいる横の位置（定位置からのずれ）。動いている最中は cur（行き先）と違うので、画面から読む
+    const here = () => shiftOf(box)[0];
+    // i 番目の列の「推す」に手が届く立ち位置（定位置からの横のずれ）と、手を届かせるために跳ぶ高さ
+    const spot = i => {
+      const b = $(`[data-hold="${i}"]`).getBoundingClientRect(), r = box.getBoundingClientRect(), s = stage.getBoundingClientRect(), fit = SLOT_FIT[on];
+      const home = r.left - here();   // 定位置にいるときの、枠の左はし
+      return {
+        dx: Math.max(s.left + 2 - (home + fit.body * r.width), b.left + b.width * .55 - (home + fit.hand * r.width)),   // 体が筐体の左からはみ出さない範囲で
+        hop: Math.max(0, Math.min(r.height * .45, r.top + fit.top * r.height - (b.bottom - 8))),   // 幅の狭い画面でも手が届く高さまで
+      };
+    };
+    const step = (d, ms, fn) => setTimeout(() => { if (d === duty && d.at === epoch && d.my === seq) fn(); }, ms);
+    // 押された列を、順に止めに行く
+    const next = d => {
+      while (d.queue.length && reelState[d.queue[0]] !== 3) d.queue.shift();   // もう止まっている列は飛ばす
+      if (!d.queue.length) { d.busy = false; pose('watch'); return; }          // 次に押されるのを待つ
+      d.busy = true;
+      const i = d.queue.shift();
+      if (!box.getClientRects().length) { pushReel(i); next(d); return; }   // 別の画面へ移っていて見えない：歩かせずに止めて、次へ
+      const { dx, hop } = spot(i), from = here(), far = Math.abs(dx - from);
+      const walk = far < 6 ? 0 : Math.max(220, Math.min(600, far / .24));       // 歩く長さ（1秒に240pxくらい。短すぎ・長すぎにしない）
+      const touch = () => {
+        box.style.setProperty('--hop', `${Math.round(hop)}px`);
+        pose('touch');                                        // ぴょんと跳んで「推す」にタッチ
+        step(d, TOUCH_AT, () => pushReel(i));
+        step(d, TOUCH_MS, () => next(d));
+      };
+      if (!walk) { touch(); return; }
+      pose(dx > from ? 'walk' : 'back');                      // 右へは歩く。左へは、前を向いたまま跳ねて戻る（絵は右向きしか無いため）
+      move(dx, walk);
+      step(d, walk, touch);
+    };
+    return {
+      rare: () => !!on && on === CHARA_RARE,
+      who: () => on,                       // いま出ているキャラクター（カットインの絵に使う）
+      cancel() { clearTimeout(timer); },   // 次に回すときは、前の回の予約を取り消す
+      reset() {                            // 最初の状態に戻す（キャラクターを下げる）
+        clearTimeout(timer); seq++; duty = null;
+        on = '';
+        if (box) { box.hidden = true; box.dataset.pose = ''; move(0, 0); }
+      },
+      // 動きを減らす設定のとき：歩かせずに、定位置に立たせるだけ
+      stand() {
+        if (!box || !stage) return;
+        const who = charaPick(on);
+        if (who) { show(who); move(0, 0); pose('watch'); }
+      },
+      // 「回す」が押されたとき：持ち場（定位置）に着いて、「推す」が押されるのを待つ。キャラクターを出せないときは false を返す
+      // at＝押したときの番号。途中でしぼり込みが変わって番号が進んだら、続きの動きはしない
+      start(at) {
+        duty = null;
+        if (!box || !stage) return false;
+        const who = charaPick(on);
+        if (!who) return false;
+        const d = duty = { at, my: ++seq, queue: [], ready: false, busy: false };
+        const arrive = () => { d.ready = true; next(d); };
+        const enter = () => {
+          show(who); pose(''); move(0, 0);
+          // 筐体の左のふちの外から、定位置まで歩いてくる（歩く距離は画面の幅で変わるので、その場で測る）
+          const from = box.getBoundingClientRect().right - stage.getBoundingClientRect().left;
+          if (from <= 0) { arrive(); return; }   // 別の画面へ移っていて測れないときは、歩かせずに立たせる
+          move(-Math.ceil(from), 0); void box.offsetWidth;
+          const walk = Math.max(300, Math.min(700, from / .24));
+          pose('walk'); move(0, walk);
+          if (who === CHARA_RARE) gameSfx('rare');
+          step(d, walk, arrive);
+        };
+        if (on === who) arrive();                                   // 同じキャラクターがもういる：そのまま待つ
+        else if (on) { pose('out'); step(d, OUT_MS, enter); }       // 交代：いまのキャラクターが下がってから、次が歩いてくる
+        else enter();
+        return true;
+      },
+      // 「推す」が押された列を、止めに行く列に加える。引き受けられないとき（キャラクターがいない）は false を返す
+      take(i) {
+        const d = duty;
+        if (!d || d.at !== epoch || d.my !== seq) return false;
+        d.queue.push(i);
+        if (d.ready && !d.busy) next(d);
+        return true;
+      },
+      // 全部止まったあと：跳ねながら定位置へ戻って、両手で献立を案内する。その姿を少し見せてから after を呼ぶ
+      finale(at, after) {
+        const my = ++seq; duty = null;
+        if (!on) { after(); return; }
+        if (reduceMotion) { pose('present'); after(); return; }
+        const back = Math.max(320, Math.min(620, Math.abs(here()) / .3));
+        // やったー、と跳ねながら戻る（横の回転はしない）。喜ぶ姿は手を横に広げるので、定位置より左（左はしの列のそば）から戻るときは、
+        // 手が筐体のふちで切れないように、前を向いたまま跳ねる姿にする
+        const left = here() < -1;
+        pose('watch'); move(0, back);
+        setTimeout(() => { if (at === epoch && my === seq) pose(left ? 'back' : 'hop'); }, 90);
+        setTimeout(() => { if (at === epoch && my === seq) pose('present'); }, back);
+        timer = setTimeout(() => { if (at === epoch) after(); }, back + PRESENT_MS);
+      },
+    };
+  })();
+
+  // 「推す」が押された：キャラクターがいれば、その列を止めに行ってもらう。いなければ、その場で止める
+  function askStop(i) {
+    if (reelState[i] !== 1) return;
+    gameSfx('push');
+    reelState[i] = 3;  // 先に「押された」印を付ける（キャラクターは、この印のある列だけ止めに行く）
+    if (slotChara.take(i)) holdLabels(); else pushReel(i);
+  }
+
   function runSlot() {
     const btn = $('#slot-go');
     btn.disabled = true;
     $('.machine').classList.remove('is-win');
     $('#slot-result').replaceChildren();
-    let left = 0;
+    slotChara.cancel();  // 前の回の「結果のカードへ画面を送る」が残っていたら取り消す
+    const at = epoch, run = ++slotRun;
+    const mine = () => at === epoch && run === slotRun;  // この回のまま（しぼり込みも変わらず、回し直してもいない）か
+    // 回す列（「固定」にした列と、候補が無い列は回さない）
+    const targets = [];
     REELS.forEach((kubun, i) => {
       if (held[i] && slot[i]) return;
       const pool = base(d => d.kubun === kubun);
-      if (!pool.length) return;
-      left++;
-      slot[i] = pickFrom(pool);
-      spinReel($(`[data-reel="${i}"]`), pool, 1500 + i * 800, slot[i], () => { if (--left === 0) finishSlot(); });
+      if (pool.length) targets.push([i, pool]);
     });
-    if (left === 0) finishSlot();
+    playScene('slot'); gameSfx('tap');
+    if (!targets.length) { finishSlot(); return; }
+    if (reduceMotion) slotChara.stand();
+    let left = targets.length;
+    targets.forEach(([i, pool]) => {
+      slot[i] = pickFrom(pool);
+      spinReel(i, pool, slot[i], () => {
+        holdLabels();
+        // あと1列になったら、最後の列を光らせて、音で高める（2列以上回していたときだけ）
+        if (--left === 1 && targets.length > 1 && !reduceMotion && mine()) { $('.machine').classList.add('is-reach'); gameSfx('reach'); }
+        if (left === 0) finishSlot();
+      });
+    });
+    if (!reduceMotion) { gameSfx('spin'); SND.hot(true); }
+    holdLabels();
+    const order = targets.map(t => t[0]).filter(i => reelState[i] === 1);
+    if (!order.length) return;  // 動きを減らす設定のときは、もう全部止まっている
+    // 列は、使う人が「推す」を押すまで回り続ける。キャラクターは持ち場に着いて、押された列を止めに行く
+    slotChara.start(at);
+    // 「推す」が押されないままのときは、残りの列を左から順に止める（回りっぱなしにしない）
+    clearTimeout(slotIdle);
+    slotIdle = setTimeout(() => { if (mine()) order.forEach(askStop); }, IDLE_MS);
+    setTimeout(() => { if (mine()) order.forEach(i => { if (reelState[i] === 1 || reelState[i] === 3) pushReel(i); }); }, IDLE_MS + 9000);  // 念のため：それでも止まらない列が残ったら、ここで止める
   }
   function finishSlot() {
     const btn = $('#slot-go');
     btn.disabled = false;
     btn.textContent = 'もう一回';
+    clearTimeout(slotIdle);
+    $('.machine').classList.remove('is-reach');
+    SND.hot(false);
     const set = slot.filter(Boolean);
     if (!set.length) return;
     $('.machine').classList.add('is-win');
     $('#slot-result').replaceChildren(h('div', { class: 'panel panel-win' }, menuCard(set)));
-    bringIntoView($('#slot-result'));
-    confetti();
+    // キャラクターがいるときは、定位置へ戻って献立を案内する姿を見せてから、結果のカードへ画面を送る
+    slotChara.finale(epoch, () => bringIntoView($('#slot-result')));
+    // 決まった瞬間：筐体のまわりを光が回り、帯（カットイン）が横切る。音はファンファーレ（画面効果が使えないときは、紙吹雪）
+    if (!$('#game-slot').getClientRects().length) return;   // 別の画面へ移っているときは、何も出さない
+    SND.hush(.4); gameSfx('win-slot');
+    if (window.FX && !reduceMotion) { FX.play('jackpot', $('.machine'), { who: slotChara.who(), palette: slotChara.rare() ? SAKURA_FX : undefined }); shake($('.machine')); }
+    else confetti(slotChara.rare() ? SAKURA : undefined);
   }
 
   // ---------- 二択（10問） ----------
@@ -782,6 +1117,7 @@
   let fortuneTimer;
   function showFortune(sign, mark, i) {
     clearTimeout(fortuneTimer);
+    SND.cut(); playScene('fortune'); gameSfx('tap');
     const box = $('#fortune-result');
     const reveal = () => {
       const rng = seeded(`fortune|${TODAY}|${sign}`);
@@ -810,12 +1146,17 @@
         h('p', { class: 'note' }, '占いは楽しみとしてお使いください。',
           h('a', { href: URANAI_URL, target: '_blank', rel: 'noopener', text: '「☆ねこ占ぽ」で星座占いを見る' }))));
       bringIntoView(box);
+      // 結果が出た瞬間：星がまたたき、星座がつながる光と、ガラスの鐘の音
+      if (!box.getClientRects().length) return;
+      SND.hush(.5); gameSfx('win-fortune');
+      FX.play('mystic', box, {});   // 結果の入れ物（#fortune-result）を基準にする（中のカードは、出てくる動きの途中で形が変わるため）
     };
     if (reduceMotion) { reveal(); return; }
     // 結果の前に、水晶玉が光る「占い中」をはさむ
     box.replaceChildren(h('div', { class: 'panel panel-sky' },
       h('div', { class: 'sky gazing' }, h('span', { class: 'orb' }), h('p', { class: 'sky-title', text: `${sign}の今日を占っています…` }))));
     bringIntoView(box);
+    gameSfx('charge', { d: 1.35 });   // 水晶玉が光っていく音
     fortuneTimer = setTimeout(reveal, 1400);
   }
 
@@ -1115,11 +1456,13 @@
     epoch++;
     wheelBusy = false;
     resetRoulette();
-    slot.fill(null); held.fill(false);
+    slot.fill(null); held.fill(false); reelState.fill(0); reelStop.fill(null); clearTimeout(slotIdle);
+    $('.machine').classList.remove('is-reach');
     $$('.hold').forEach(b => b.setAttribute('aria-pressed', 'false'));
     $$('[data-reel] .strip').forEach(s => { s.style.transition = 'none'; s.style.transform = 'none'; s.replaceChildren(cell(null)); });
     $$('.reelwin').forEach(w => w.classList.remove('is-done', 'is-spinning'));
     $('#slot-result').replaceChildren(); $('.machine').classList.remove('is-win'); $('#slot-go').textContent = '回す';
+    slotChara.reset();
     markReels();
     duel = null;
     $('#duel-area').replaceChildren(); $('#duel-result').replaceChildren();
@@ -1173,6 +1516,8 @@
   $('#top-go').addEventListener('click', () => go('home'));
   // 背景の絵は、開いて少ししてから先に読み込んでおく（切り替えたときに、絵が遅れて出ないように）
   setTimeout(() => BGS.forEach(n => { new Image().src = 'art/page_' + n + '.webp'; }), 1500);
+  // ルーレットを回すキャラクターの絵も、同じく先に読み込んでおく
+  setTimeout(() => { charaLoad(CHARA_MAIN); charaLoad(CHARA_RARE); }, 1500);
   $('.home-link').addEventListener('click', e => {
     if (e.button || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;  // 新しいタブで開く操作などは、ブラウザに任せる
     e.preventDefault();
@@ -1190,11 +1535,23 @@
   $('#result-more').addEventListener('click', () => { shown += PAGE; renderResults(); });
   $('#jump-results').addEventListener('click', () => $('#result-head').scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth' }));
   $('#roulette-go').addEventListener('click', runRoulette);
+  // 「音」のスイッチ：音あり・音なしを切り替えて、端末に覚えておく。入れたときは、短い音で「鳴ること」を知らせる
+  soundLabel();
+  if ($('#sound')) $('#sound').addEventListener('click', () => {
+    SND.set(!SND.on);
+    soundLabel();
+    if (SND.on) SND.sfx('push'); else sceneNow = '';
+    toast(SND.on ? '音を出します（回したときに鳴ります）' : '音を止めました');
+  });
+  // カットインに使うキャラクターの絵を、先に読み込んでおく
+  setTimeout(() => { FX.warm(CHARA_MAIN); FX.warm(CHARA_RARE); }, 1500);
   $('#slot-go').addEventListener('click', runSlot);
   $$('.hold').forEach(b => b.addEventListener('click', () => {
     const i = Number(b.dataset.hold);
+    if (reelState[i]) { askStop(i); return; }  // 回っている間は「推す」：押すと、キャラクターがその列を止めに行く
     if (!slot[i]) return;
     held[i] = !held[i];
+    gameSfx('hold');
     b.setAttribute('aria-pressed', String(held[i]));
   }));
   $('#duel-go').addEventListener('click', startDuel);

@@ -57,6 +57,11 @@ for top in ("top_wide", "top_tall"):
     if os.path.exists(os.path.join(OUT, top + ".webp")):
         flags[top] = True
 
+# ルーレットを回すキャラクター（tools/make_chara.py が作る）があれば、使える絵として数える
+for chara in ("chara_musubi", "chara_kimono"):
+    if os.path.exists(os.path.join(OUT, chara + ".webp")):
+        flags[chara] = True
+
 # VSの丸い飾り：白い背景から丸の部分だけを切り出す
 path = os.path.join(SRC, "vs_badge.png")
 if os.path.exists(path):

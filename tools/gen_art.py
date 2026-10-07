@@ -121,6 +121,55 @@ ART += [
      ["icon_sheet.png"]),
 ]
 
+# ルーレットを回すキャラクター（2026-10-05 社長指示。社長が用意した絵 art_src/_ref_*.jpg を見本に、同じキャラクターの全身を6つの姿勢で描く）
+# 1枚に6つの姿勢を並べて作り、tools/make_chara.py が背景（緑）を抜いて切り分ける。向きは全部「右向き」（円盤が右にある想定）
+SHEET = ("Make a character sprite sheet for a 2D web animation: exactly 6 full-body poses of this same character, arranged in a strict "
+         "grid of 3 columns and 2 rows. Each pose is centered in its own cell with wide empty gaps, so that no pose touches or overlaps "
+         "another pose or the image edge. All 6 are drawn at exactly the same scale, with the same design, colors and proportions. "
+         "In every pose the character is seen in three-quarter view FACING RIGHT (toward the right side of the image), as if a big "
+         "prize wheel stood just to its right. ")
+POSES = ("Row 1, left to right: (1) walking to the right, mid-stride with one foot forward, arms swinging naturally, cheerful; "
+         "(2) walking to the right, the opposite stride with the other foot forward and the arms swung the other way; "
+         "(3) standing on tiptoe and reaching both hands high up to the upper right, as if gripping the rim of an invisible big wheel, "
+         "winding up to spin it. "
+         "Row 2, left to right: (4) having just swung both arms down hard toward the lower right in one big spinning motion, body "
+         "leaning forward, energetic; (5) standing and looking up to the upper right with excited anticipation, both hands held "
+         "together in front of the chest; (6) jumping for joy with both arms thrown up in the air, eyes closed in a big happy smile, "
+         "body turned toward the viewer. ")
+CLEAN = ("Draw ONLY the character, 6 times: no wheel, no objects, no props, no motion lines, no sparkles, no shadows, no floor, no "
+         "text, no letters, no labels, no numbers, no frame, no grid lines. "
+         "Background: one perfectly flat, uniform, pure chroma-key green (#00FF00) filling the entire image, with no gradient, no "
+         "shadow and no floor line. The character itself must contain no green color at all.")
+ART += [
+    ("chara_musubi", "1536x1024",
+     "Use the attached image as the character reference and draw the SAME character: the cute rice-ball (onigiri) concierge mascot. "
+     "A large rounded-triangle body made of glossy white rice grains, big sparkling brown eyes, small dark eyebrows, rosy cheeks "
+     "with small red blush lines, an open happy smile, a strip of black nori seaweed under the chin like a collar, a navy-blue "
+     "concierge uniform jacket with thin gold piping and gold buttons, a dark-red silk scarf tied in a bow at the neck, a small gold "
+     "ginkgo-leaf pin, a white pocket square, a small plain gold name badge (too small to read, leave it blank), and white "
+     "rice-textured mitten hands with white lace cuffs. Keep the same soft, cute, 3D-rendered toy-like style as the reference. "
+     "IGNORE everything else in the reference image: no counter, no sign, no menu, no tablet, no food, no room. "
+     "The reference shows only the upper body; complete the character as a full-body figure with short legs in matching navy-blue "
+     "trousers and small dark-brown shoes. " + SHEET + POSES + CLEAN,
+     ["_ref_musubi.jpg"]),
+    ("chara_kimono", "1536x1024",
+     "Use the attached image as the character reference and draw the SAME character: a cheerful young Japanese woman concierge in "
+     "an elegant navy-blue kimono. Brown hair in a neat updo with side-swept bangs, an ornamental hairpin topped with a small "
+     "white onigiri rice ball and dangling pearls, small pink flower hair ornaments, pearl earrings and a pearl necklace, warm "
+     "brown eyes and a gentle smile. The navy-blue kimono is decorated with white-and-gold cherry blossoms, rows of small pearls "
+     "along the collar, gold and red maple leaves on the sleeves, and a gold torii-gate-with-steaming-bowl emblem on the chest; a "
+     "gold obi sash with a string of pearls and a big red ribbon bow at the front. The kimono collar is worn the correct way (the "
+     "left panel over the right, forming a 'y' shape as seen by the viewer) and is never mirrored. Keep the same clean 2D anime "
+     "illustration style with soft shading as the reference. "
+     "IGNORE everything else in the reference image: no counter, no tablet, no food, no menu, no sign, no lantern, no cherry "
+     "branch, no petals. "
+     "The reference shows only the upper body; complete her as a full-body figure: the kimono reaches down to the ankles, with "
+     "white tabi socks and zori sandals with red straps. Use slightly cute, simplified proportions (about 4.5 heads tall) so that "
+     "her face stays clear at small size. She moves gracefully, with the long kimono sleeves flowing. "
+     + SHEET + POSES + CLEAN,
+     ["_ref_kimono.jpg"]),
+]
+
 if __name__ == "__main__":
     os.makedirs(OUT, exist_ok=True)
     only = set(sys.argv[1:])
