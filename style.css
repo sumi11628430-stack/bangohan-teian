@@ -29,7 +29,6 @@ ul { padding: 0; list-style: none; }
 
 .top { padding: 22px 16px 14px; text-align: center; }
 .top h1 { font-size: 1.45rem; letter-spacing: .04em; }
-.lead { color: #5e4c3e; font-size: .92rem; }
 
 main { max-width: 620px; margin: 0 auto; padding: 0 14px; }
 .view { display: none; }
@@ -798,8 +797,13 @@ body[data-view="top"] { padding-bottom: 0; }
   .modebar button { padding: 4px 2px; white-space: nowrap; }
 }
 @media (max-width: 359px) { .modebar button { font-size: .82rem; } }
-.pickbox { padding: 12px 14px; margin-bottom: 10px; }
-.pickbox .check { width: auto; margin: 10px 0 0; padding: 0; background: none; box-shadow: none; }
+.pickbox { position: relative; padding: 8px 12px 10px; margin-bottom: 10px; }
+.pickbox .modebar { gap: 6px; }
+.pickbox .modebar-title { font-size: .86rem; line-height: 22px; }
+.pickbox .modebar button { min-height: 34px; font-size: .86rem; }
+.pickbox .check { position: absolute; top: 8px; right: 12px; width: auto; margin: 0; padding: 0; gap: 6px; background: none; box-shadow: none; font-size: .8rem; line-height: 22px; }
+.pickbox .check input { width: 16px; height: 16px; }
+@media (max-width: 359px) { .pickbox .modebar-title { font-size: .8rem; } .pickbox .check { font-size: .76rem; } }
 
 /* ==================== 今日の一品：決めるか、ほかの方法で決めるか（2026-10-05 社長指示） ==================== */
 /* 「これに決定」と、ほかの決め方（条件・ルーレット・スロット・二択・星座）を、カードの中に並べる */
@@ -893,15 +897,18 @@ body.art-chara .slot-go-row { padding-top: 26px; }
 /* ==================== 決まった瞬間の画面効果・音のスイッチ（2026-10-07 社長指示） ==================== */
 /* 光の効果を描く、画面いっぱいの透明な板（fx.js）。下のメニューやカードの上、くわしく見る画面の下 */
 .fx-layer { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 30; pointer-events: none; }
-/* 「音」のスイッチ：見出しの右上。入っているときは色を付ける */
+/* 「音」のスイッチ：画面の左下（下のメニューのすぐ上）に浮かぶ、丸い「♪」。入っているときは色を付け、切ってあるときは灰色にして斜めの線を引く */
 .sound {
-  position: absolute; right: 12px; top: 14px; min-height: 40px; padding: 4px 14px;
-  background: #fff; border: 1.5px solid var(--line); border-radius: 999px; font-weight: 700; font-size: .9rem; color: #6b584a;
-  box-shadow: var(--press);
+  position: fixed; z-index: 21; left: max(12px, calc(50% - 280px)); bottom: calc(86px + env(safe-area-inset-bottom));
+  width: 46px; height: 46px; padding: 0; display: grid; place-items: center;
+  background: var(--accent); border: 2px solid #fff; border-radius: 50%; color: #fff; font-weight: 700; font-size: 1.35rem; line-height: 1;
+  box-shadow: 0 4px 12px rgba(60, 35, 15, .3);
 }
-.sound:hover { border-color: var(--accent); }
-.sound:active { transform: translateY(2px); box-shadow: none; }
-.sound[aria-checked="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+.sound:hover { filter: brightness(1.06); }
+.sound:active { transform: translateY(2px); box-shadow: 0 1px 4px rgba(60, 35, 15, .3); }
+.sound[aria-checked="false"] { background: #fffdfa; border-color: var(--edge); color: #a39384; }
+.sound[aria-checked="false"]::after { content: ''; position: absolute; left: 50%; top: 50%; width: 30px; height: 2.5px; margin: -1.25px 0 0 -15px; border-radius: 2px; background: #8a7868; transform: rotate(-45deg); }
+body:not([data-view="play"]):not([data-view="fortune"]) > .sound { display: none; }   /* 音が鳴る画面（おまかせ・占い）にだけ出す。ほかの画面では、下の方のボタンや文字を隠してしまうため */
 /* ルーレット：料理名が見えてから止まるまで、円盤のまわりの光が強まる */
 .wheel-wrap.is-tense #wheel { animation: tense-glow .46s ease-in-out infinite alternate; }
 @keyframes tense-glow {

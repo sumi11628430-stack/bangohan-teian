@@ -4,11 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>毎日の晩御飯の提案</title>
-<meta name="description" content="今夜のごはん、30秒で決めよう。家で作る・買って帰る・外で食べる、どの場面でも使える晩ごはんの提案サイト。ルーレットや献立スロット、二択、星座でも決められます。">
+<meta name="description" content="家で作る・買って帰る・外で食べる、どの場面でも使える晩ごはんの提案サイト。ルーレットや献立スロット、二択、星座でも決められます。">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="毎日の晩御飯の提案">
 <meta property="og:title" content="毎日の晩御飯の提案">
-<meta property="og:description" content="今夜のごはん、30秒で決めよう。家で作る・買って帰る・外で食べる、どれでも選べます。">
+<meta property="og:description" content="家で作る・買って帰る・外で食べる、どれでも選べます。">
 <meta property="og:url" content="https://sumi11628430-stack.github.io/bangohan-teian/">
 <meta property="og:image" content="https://sumi11628430-stack.github.io/bangohan-teian/ogp.jpg">
 <meta property="og:image:width" content="1200">
@@ -25,7 +25,6 @@
 <!-- トップ画面（入口）：料理の写真を散りばめた絵の上に、題名と「今夜のごはんを決める」ボタン -->
 <section id="view-top" class="view top-view is-active" aria-label="トップ">
   <div class="top-card">
-    <p class="top-eyebrow">今夜のごはん、30秒で決めよう</p>
     <h1 class="top-title" tabindex="-1">毎日の<wbr>晩御飯の<wbr>提案</h1>
     <p class="top-ways">家で作る ・ 買って帰る ・ 外で食べる</p>
     <button type="button" id="top-go" class="btn btn-primary btn-big top-go">今夜のごはんを決める</button>
@@ -42,10 +41,7 @@
 
 <header class="top">
   <button type="button" id="back" class="back" hidden>← 戻る</button>
-  <!-- 音あり・音なしの切り替え（ルーレット・献立スロット・占いの効果音とBGM。最初は音あり。音は「回す」などを押したときから鳴る） -->
-  <button type="button" id="sound" class="sound" role="switch" aria-checked="true" hidden>♪ 音あり</button>
   <h1><a href="#top" class="home-link" aria-label="毎日の晩御飯の提案（トップ画面へ）">毎日の晩御飯の提案</a></h1>
-  <p class="lead">今夜のごはん、30秒で決めよう</p>
 </header>
 
 <main>
@@ -227,6 +223,9 @@
   <!-- クレジット（占いサイトなど、ほかのサイトと同じ形。2026-10-07 社長指示） -->
   <p class="foot-credit"><span>Uniter-presents © 2025 A.T.L</span> / <span>安らぎプロジェクト</span></p>
 </footer>
+
+<!-- 音あり・音なしの切り替え（ルーレット・献立スロット・占いの効果音とBGM）。画面の左下の「♪」。最初は音あり。音は「回す」などを押したときから鳴る -->
+<button type="button" id="sound" class="sound" role="switch" aria-checked="true" aria-label="音" hidden>♪</button>
 
 <nav class="tabbar" aria-label="メニュー">
   <button type="button" data-view="home" aria-current="page"><img class="tab-img" src="art/ico_today.webp" alt="" width="30" height="30"><span class="ti">今日</span></button>

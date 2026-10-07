@@ -123,12 +123,14 @@
   const FX = window.FX || { play() {}, warm() {} };
   const SAKURA_FX = ['#ffd1dc', '#fff0f5', '#ff9eb5', '#ffd166'];   // 着物のコンシェルジュのときの光の色（桜色）
   // 円盤の動き（cubic-bezier(.1, .62, .08, 1)）で、回し始めから何秒後に何度回っているかを求める（針の音を、回る速さに合わせるため）
-  function wheelTicks(total, ms) {
+  // n＝円盤のマスの数。針（真上＝270度）がマスの境目をはじくのは、270 を 1マスの角度で割った余りのぶん回ったときと、そこから1マスぶんごと（10マスなら 18度・54度・90度…）
+  function wheelTicks(total, ms, n) {
     const bez = (u, a, b) => 3 * (1 - u) * (1 - u) * u * a + 3 * (1 - u) * u * u * b + u * u * u, out = [];
-    let next = 18, last = -1;   // 針がマスの境目をはじくのは、18度・54度・90度…回ったとき
+    const seg = 360 / Math.max(1, n);
+    let next = (270 % seg) || seg, last = -1;
     for (let i = 1; i <= 2000; i++) {
       const u = i / 2000, t = bez(u, .1, .08) * ms / 1000, deg = bez(u, .62, 1) * total;
-      while (deg >= next) { if (t - last >= .05) { out.push(t); last = t; } next += 36; }   // 速すぎる所は間引く（1秒に20回まで）
+      while (deg >= next) { if (t - last >= .05) { out.push(t); last = t; } next += seg; }   // 速すぎる所は間引く（1秒に20回まで）
     }
     return out;
   }
@@ -333,14 +335,24 @@
   // いま流しているBGMの場面（roulette・slot・fortune。流していなければ空）
   let sceneNow = '';
   function playScene(name) { sceneNow = name; SND.scene(name); }
-  // 遊びの音は、その遊びの画面にいる間だけ鳴らす（回している途中で別の画面へ移ったら、そのあとの音は鳴らさない）
-  function gameSfx(name, o) { if (sceneNow) SND.sfx(name, o); }
-  // 画面を切り替えたあと：BGMの場面と違う画面にいるなら、BGMを止める
-  function sceneCheck() {
-    if (!sceneNow) return;
+  // いま出ている遊びの画面（roulette・slot・fortune。遊びの画面でなければ空）
+  function screenScene() {
     const view = document.body.dataset.view, game = ($('.game.is-active') || {}).id;
-    const here = view === 'fortune' ? 'fortune' : view === 'play' && game === 'game-roulette' ? 'roulette' : view === 'play' && game === 'game-slot' ? 'slot' : '';
-    if (here !== sceneNow) { sceneNow = ''; SND.scene(null); SND.cut(); }   // 予約してある音（針の音など）も止める
+    return view === 'fortune' ? 'fortune' : view === 'play' && game === 'game-roulette' ? 'roulette' : view === 'play' && game === 'game-slot' ? 'slot' : '';
+  }
+  // その遊びが、いま回っている最中か
+  function roundOn(scene) { return scene === 'roulette' ? wheelBusy : scene === 'slot' ? reelState.some(Boolean) : false; }
+  // 遊びの音は、その遊びの画面が出ている間だけ鳴らす（回している途中で別の画面や別の遊びへ移ったら、そこでは鳴らさない）
+  function gameSfx(scene, name, o) { if (screenScene() === scene) SND.sfx(name, o); }
+  // BGMを盛り上げる・しずめるのも、その遊びのBGMを流しているときだけ
+  function gameHot(scene, v) { if (sceneNow === scene) SND.hot(v); }
+  function gameHush(scene, sec) { if (sceneNow === scene && screenScene() === scene) SND.hush(sec); }
+  // 画面を切り替えたあと：BGMの場面と違う画面にいるなら、BGMと、予約してある音（針の音など）を止める。
+  // 回している途中の遊びの画面へ戻ってきたときは、BGMを流し直す
+  function sceneCheck() {
+    const here = screenScene();
+    if (sceneNow && here !== sceneNow) { sceneNow = ''; SND.scene(null); SND.cut(); }
+    if (!sceneNow && here && roundOn(here)) playScene(here);
   }
   // 決まった瞬間に、舞台を小さく揺らす（動きを減らす設定のときは、スタイル側で止める）
   function shake(el) { if (!el) return; el.classList.remove('fx-shake'); void el.offsetWidth; el.classList.add('fx-shake'); setTimeout(() => el.classList.remove('fx-shake'), 400); }
@@ -349,8 +361,8 @@
     const b = $('#sound');
     if (!b) return;
     b.hidden = !SND.ok;
-    b.setAttribute('aria-checked', String(SND.on));
-    b.textContent = SND.on ? '♪ 音あり' : '♪ 音なし';
+    b.setAttribute('aria-checked', String(SND.on));   // 見た目は「♪」だけ。切ってあるときは、スタイル側で斜めの線を引く
+    b.title = SND.on ? '音あり（押すと消えます）' : '音なし（押すと鳴ります）';
   }
   function showGame(game) {
     $$('.seg button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.game === game)));
@@ -597,7 +609,8 @@
     wheelDeg = 0;
     wheel.style.transition = 'none'; wheel.style.transform = 'none';
     wrap.classList.remove('is-win', 'is-spinning', 'is-tense');
-    SND.cut(); SND.hot(false);   // 回っている途中で最初の状態に戻したときは、予約してある音もやめる
+    if (sceneNow === 'roulette') SND.cut();   // 回っている途中で最初の状態に戻したときは、予約してある音もやめる
+    gameHot('roulette', false);
     drawWheel(new Array(WHEEL_N).fill(null), -1);
     const win = $('#roulette-window');
     win.classList.remove('is-done'); win.textContent = '？';
@@ -615,7 +628,7 @@
   const RARE_RATE = 0.10;   // 着物のコンシェルジュが出る割合（10%＝平均で10回に1回。回すたびに毎回くじを引く。2026-10-07 社長指示）
   const WALK_MS = 1300, REACH_MS = 380, SWING_MS = 420, OUT_MS = 350;   // 歩く・手を伸ばす・回す・退場の長さ（スタイル側の動きと合わせる）
   const SAKURA = ['#ffd1dc', '#ffb7c5', '#ff9eb5', '#fff0f5', '#ffd166'];  // 着物のコンシェルジュのときの紙吹雪（桜色）
-  const CHEER_MS = 900;     // 止まったあと、喜ぶ姿を見せてから結果のカードへ画面を送るまでの長さ
+  const CHEER_MS = 1300;    // 止まったあと、喜ぶ姿と光の効果を見せてから結果のカードへ画面を送るまでの長さ
   // 絵は先に読み込んでおく。読み込めていないキャラクターは出さない（歩いてくる間、何も見えないことが無いように）
   const charaImg = {};
   function charaLoad(who) {
@@ -664,7 +677,7 @@
           box.style.setProperty('--from', `${-Math.ceil(from)}px`);
           void box.offsetWidth;
           pose('walk');
-          if (who === CHARA_RARE) gameSfx('rare');
+          if (who === CHARA_RARE) gameSfx('roulette', 'rare');
           step(WALK_MS, swing);
         };
         if (on === who) swing();                                 // 同じキャラクターがもういる：歩き直さず、その場で回す
@@ -692,7 +705,7 @@
     if (!pool.length || wheelBusy) return;
     wheelBusy = true;
     wheelChara.cancel();  // 前の回の「結果のカードへ画面を送る」が残っていたら取り消す
-    playScene('roulette'); gameSfx('tap');
+    playScene('roulette'); gameSfx('roulette', 'tap');
     const btn = $('#roulette-go'), win = $('#roulette-window'), wheel = $('#wheel'), wrap = $('.wheel-wrap');
     btn.disabled = true;
     $('#roulette-result').replaceChildren();
@@ -726,9 +739,9 @@
       wheelChara.cheer('cheer', at, () => bringIntoView($('#roulette-result')));
       // 決まった瞬間：魔法が発動するような光と音（画面効果が使えないときは、紙吹雪）
       wrap.classList.remove('is-tense');
-      SND.hot(false);
+      gameHot('roulette', false);
       if (!wrap.getClientRects().length) return;   // 別の画面へ移っているときは、何も出さない
-      gameSfx('win-roulette');
+      gameSfx('roulette', 'win-roulette');
       if (window.FX && !reduceMotion) { FX.play('magic', wrap, { palette: wheelChara.rare() ? SAKURA_FX : undefined }); shake($('.wheel-stage')); }
       else confetti(wheelChara.rare() ? SAKURA : undefined);
     };
@@ -744,14 +757,14 @@
       wheelDeg += 360 * 7;
       wheel.style.transition = `transform ${SPIN_MS}ms cubic-bezier(.1, .62, .08, 1)`;
       wheel.style.transform = `rotate(${wheelDeg}deg)`;
-      gameSfx('spin'); SND.hot(true); if (sceneNow) SND.ticks(wheelTicks(wheelDeg, SPIN_MS));   // 回り始めの音と、針がマスをはじく音（回る速さに合わせる）
+      gameSfx('roulette', 'spin'); gameHot('roulette', true); if (screenScene() === 'roulette') SND.ticks(wheelTicks(wheelDeg, SPIN_MS, items.length));   // 回り始めの音と、針がマスをはじく音（回る速さに合わせる）
       setTimeout(() => {   // 止まる2秒前に「？」を料理名に変える。ここから、決まるまで音と光を高めていく
         if (at !== epoch) return;
         drawWheel(items, -1);
         wrap.classList.add('is-tense');
-        gameSfx('riser', { d: OPEN_MS / 1000 - .2 });
+        gameSfx('roulette', 'riser', { d: OPEN_MS / 1000 - .2 });
       }, SPIN_MS - OPEN_MS);
-      setTimeout(() => { if (at === epoch) SND.hush(.5); }, SPIN_MS - 220);   // 決まる直前の「間」：BGMを一瞬しずめる
+      setTimeout(() => { if (at === epoch) gameHush('roulette', .5); }, SPIN_MS - 220);   // 決まる直前の「間」：BGMを一瞬しずめる
       setTimeout(finish, SPIN_MS + 100);
     };
     wheelChara.spin(at, start);
@@ -789,7 +802,7 @@
   // 列を止める（キャラクターが「推す」にタッチしたとき。キャラクターがいないときは、使う人が押したとき）
   function pushReel(i) {
     if (reelState[i] !== 1 && reelState[i] !== 3) return;
-    gameSfx('reelstop');
+    gameSfx('slot', 'reelstop');
     const b = $(`[data-hold="${i}"]`);
     b.classList.add('is-touched');
     setTimeout(() => b.classList.remove('is-touched'), 280);
@@ -935,7 +948,7 @@
           move(-Math.ceil(from), 0); void box.offsetWidth;
           const walk = Math.max(300, Math.min(700, from / .24));
           pose('walk'); move(0, walk);
-          if (who === CHARA_RARE) gameSfx('rare');
+          if (who === CHARA_RARE) gameSfx('slot', 'rare');
           step(d, walk, arrive);
         };
         if (on === who) arrive();                                   // 同じキャラクターがもういる：そのまま待つ
@@ -971,7 +984,7 @@
   // 「推す」が押された：キャラクターがいれば、その列を止めに行ってもらう。いなければ、その場で止める
   function askStop(i) {
     if (reelState[i] !== 1) return;
-    gameSfx('push');
+    gameSfx('slot', 'push');
     reelState[i] = 3;  // 先に「押された」印を付ける（キャラクターは、この印のある列だけ止めに行く）
     if (slotChara.take(i)) holdLabels(); else pushReel(i);
   }
@@ -991,7 +1004,7 @@
       const pool = base(d => d.kubun === kubun);
       if (pool.length) targets.push([i, pool]);
     });
-    playScene('slot'); gameSfx('tap');
+    playScene('slot'); gameSfx('slot', 'tap');
     if (!targets.length) { finishSlot(); return; }
     if (reduceMotion) slotChara.stand();
     let left = targets.length;
@@ -1000,11 +1013,11 @@
       spinReel(i, pool, slot[i], () => {
         holdLabels();
         // あと1列になったら、最後の列を光らせて、音で高める（2列以上回していたときだけ）
-        if (--left === 1 && targets.length > 1 && !reduceMotion && mine()) { $('.machine').classList.add('is-reach'); gameSfx('reach'); }
+        if (--left === 1 && targets.length > 1 && !reduceMotion && mine()) { $('.machine').classList.add('is-reach'); gameSfx('slot', 'reach'); }
         if (left === 0) finishSlot();
       });
     });
-    if (!reduceMotion) { gameSfx('spin'); SND.hot(true); }
+    if (!reduceMotion) { gameSfx('slot', 'spin'); gameHot('slot', true); }
     holdLabels();
     const order = targets.map(t => t[0]).filter(i => reelState[i] === 1);
     if (!order.length) return;  // 動きを減らす設定のときは、もう全部止まっている
@@ -1021,7 +1034,7 @@
     btn.textContent = 'もう一回';
     clearTimeout(slotIdle);
     $('.machine').classList.remove('is-reach');
-    SND.hot(false);
+    gameHot('slot', false);
     const set = slot.filter(Boolean);
     if (!set.length) return;
     $('.machine').classList.add('is-win');
@@ -1030,7 +1043,7 @@
     slotChara.finale(epoch, () => bringIntoView($('#slot-result')));
     // 決まった瞬間：筐体のまわりを光が回り、帯（カットイン）が横切る。音はファンファーレ（画面効果が使えないときは、紙吹雪）
     if (!$('#game-slot').getClientRects().length) return;   // 別の画面へ移っているときは、何も出さない
-    SND.hush(.4); gameSfx('win-slot');
+    gameHush('slot', .4); gameSfx('slot', 'win-slot');
     if (window.FX && !reduceMotion) { FX.play('jackpot', $('.machine'), { who: slotChara.who(), palette: slotChara.rare() ? SAKURA_FX : undefined }); shake($('.machine')); }
     else confetti(slotChara.rare() ? SAKURA : undefined);
   }
@@ -1117,7 +1130,7 @@
   let fortuneTimer;
   function showFortune(sign, mark, i) {
     clearTimeout(fortuneTimer);
-    SND.cut(); playScene('fortune'); gameSfx('tap');
+    SND.cut(); playScene('fortune'); gameSfx('fortune', 'tap');
     const box = $('#fortune-result');
     const reveal = () => {
       const rng = seeded(`fortune|${TODAY}|${sign}`);
@@ -1148,7 +1161,7 @@
       bringIntoView(box);
       // 結果が出た瞬間：星がまたたき、星座がつながる光と、ガラスの鐘の音
       if (!box.getClientRects().length) return;
-      SND.hush(.5); gameSfx('win-fortune');
+      gameHush('fortune', .5); gameSfx('fortune', 'win-fortune');
       FX.play('mystic', box, {});   // 結果の入れ物（#fortune-result）を基準にする（中のカードは、出てくる動きの途中で形が変わるため）
     };
     if (reduceMotion) { reveal(); return; }
@@ -1156,7 +1169,7 @@
     box.replaceChildren(h('div', { class: 'panel panel-sky' },
       h('div', { class: 'sky gazing' }, h('span', { class: 'orb' }), h('p', { class: 'sky-title', text: `${sign}の今日を占っています…` }))));
     bringIntoView(box);
-    gameSfx('charge', { d: 1.35 });   // 水晶玉が光っていく音
+    gameSfx('fortune', 'charge', { d: 1.35 });   // 水晶玉が光っていく音
     fortuneTimer = setTimeout(reveal, 1400);
   }
 
@@ -1540,7 +1553,7 @@
   if ($('#sound')) $('#sound').addEventListener('click', () => {
     SND.set(!SND.on);
     soundLabel();
-    if (SND.on) SND.sfx('push'); else sceneNow = '';
+    if (SND.on) { SND.sfx('push'); sceneCheck(); } else sceneNow = '';   // 回している途中で入れたときは、BGMも流しはじめる
     toast(SND.on ? '音を出します（回したときに鳴ります）' : '音を止めました');
   });
   // カットインに使うキャラクターの絵を、先に読み込んでおく
@@ -1551,7 +1564,7 @@
     if (reelState[i]) { askStop(i); return; }  // 回っている間は「推す」：押すと、キャラクターがその列を止めに行く
     if (!slot[i]) return;
     held[i] = !held[i];
-    gameSfx('hold');
+    gameSfx('slot', 'hold');
     b.setAttribute('aria-pressed', String(held[i]));
   }));
   $('#duel-go').addEventListener('click', startDuel);

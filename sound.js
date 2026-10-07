@@ -42,7 +42,7 @@
   }
   // 押した流れの中で呼ぶ：音の用意をして、止まっていたら動かす
   function unlock() {
-    if (!on) return false;
+    if (!on || document.hidden) return false;   // 音なしのとき・画面が裏にある間は、鳴らさない
     setup();
     if (!ctx) return false;
     if (ctx.state === 'suspended') ctx.resume();
@@ -247,6 +247,7 @@
   function pump() {
     if (!song || !ctx) return;
     const dur = 60 / song.def.bpm / 4;
+    if (song.next < ctx.currentTime - .1) song.next = ctx.currentTime + .05;
     while (song.next < ctx.currentTime + .15) {
       const late = song.i % 2 ? song.def.swing * dur : 0;
       song.def.step(song, song.i, song.next + late, dur);
@@ -294,13 +295,13 @@
   function set(v) {
     on = !!v;
     try { localStorage.setItem(KEY, on ? '1' : '0'); } catch (e) { /* 覚えられなくても、この場では切り替わる */ }
-    if (!on) { stopSong(); if (master) master.gain.setTargetAtTime(0, ctx.currentTime, .03); }
+    if (!on) { stopSong(); cut(); if (master) master.gain.setTargetAtTime(0, ctx.currentTime, .03); }
     else if (unlock()) master.gain.setTargetAtTime(.9, ctx.currentTime, .03);
   }
   // 画面を離れている間（別のタブ・画面オフ）は、音を止める
   document.addEventListener('visibilitychange', () => {
     if (!ctx) return;
-    if (document.hidden) ctx.suspend(); else if (on) ctx.resume();
+    if (document.hidden) { cut(); ctx.suspend(); } else if (on) ctx.resume();   // 裏に回ったら、予約してある音もやめる（戻ったときに、ずれて鳴らないように）
   });
 
   window.SND = { sfx, ticks, scene, hot, cut, hush, set, get on() { return on; }, get ok() { return !!AC; } };

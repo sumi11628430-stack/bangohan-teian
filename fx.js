@@ -8,7 +8,7 @@
   let cv = null, g = null, W = 0, H = 0, layers = [], raf = 0, last = 0;
 
   function fit() {
-    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const dpr = Math.min(1.5, window.devicePixelRatio || 1);
     W = window.innerWidth; H = window.innerHeight;
     cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -17,17 +17,21 @@
     const dt = Math.min(.05, (now - last) / 1000); last = now;
     g.globalCompositeOperation = 'source-over';
     g.clearRect(0, 0, W, H);
-    layers = layers.filter(fn => { g.save(); g.globalCompositeOperation = 'lighter'; const keep = fn(now, dt); g.restore(); return keep; });
+    layers = layers.filter(l => {
+      if (!l.el.isConnected || !l.el.getClientRects().length) return false;   // 別の画面へ移って見えなくなった
+      g.save(); g.globalCompositeOperation = 'lighter'; const keep = l.fn(now, dt); g.restore(); return keep;
+    });
     if (layers.length) raf = requestAnimationFrame(frame);
     else { raf = 0; cv.remove(); cv = null; window.removeEventListener('resize', fit); }
   }
-  function add(fn) {
+  // el＝効果を出す要素、fn＝1コマ描く関数（false を返したら終わり）
+  function add(el, fn) {
     if (!cv) {
       cv = document.createElement('canvas'); cv.className = 'fx-layer'; cv.setAttribute('aria-hidden', 'true');
       g = cv.getContext('2d'); document.body.append(cv); fit();
       window.addEventListener('resize', fit);
     }
-    layers.push(fn);
+    layers.push({ el, fn });
     if (!raf) { last = performance.now(); raf = requestAnimationFrame(frame); }
   }
 
@@ -100,7 +104,7 @@
         p.x += p.vx * dt; p.y += p.vy * dt;
         const k = 1 - p.age / p.life, a = Math.min(1, k * 2.2);
         if (p.trail) { g.globalAlpha = a * .5; g.strokeStyle = p.col; g.lineWidth = p.size * .5; g.beginPath(); g.moveTo(p.x - p.vx * p.trail, p.y - p.vy * p.trail); g.lineTo(p.x, p.y); g.stroke(); }
-        if (p.star) spark(p.x, p.y, p.size * (1.2 + Math.sin(p.age * 22 + p.size) * .5), p.col, a, p.age * (p.spin || 0));
+        if (p.star) spark(p.x, p.y, p.size * (1.2 + Math.sin(p.age * 13 + p.size) * .5), p.col, a, p.age * (p.spin || 0));
         else dot(p.x, p.y, p.size * (.6 + k * .9), p.col, a);
       }
       return alive > 0;
@@ -120,13 +124,13 @@
       const a = Math.random() * TAU;
       return { x: Math.cos(a) * R0 * 1.02, y: Math.sin(a) * R0 * 1.02, vx: 0, vy: -40 - Math.random() * 90, life: .9 + Math.random() * .8, size: 2 + Math.random() * 4, col: pick(pal), delay: .25 + Math.random() * .7, star: Math.random() < .3, spin: 2 };
     });
-    add((now, dt) => {
+    add(el, (now, dt) => {
       const t = (now - t0) / 1000;
       if (t > 2.1) return false;
       const c = rect(el), R = c.w / 2;
       flash(c.x, c.y, bump(t, 0, .04, .26) * .85, '#fffbe6');
-      rays(c.x, c.y, R * 2.6, 14, t * .6, pal[0], bump(t, .02, .2, 1.5) * .22);
-      rays(c.x, c.y, R * 1.9, 9, -t * .9 + 1, pal[2], bump(t, .08, .3, 1.3) * .16);
+      rays(c.x, c.y, R * 2.6, 10, t * .6, pal[0], bump(t, .02, .2, 1.5) * .26);
+      rays(c.x, c.y, R * 1.9, 6, -t * .9 + 1, pal[2], bump(t, .08, .3, 1.3) * .2);
       // 光の輪が3つ、外へ広がる
       [[0, pal[1], 5], [.09, pal[2], 3], [.2, pal[3], 2.5]].forEach(([d, col, w]) => { const k = out3((t - d) / .75); if (t >= d) ring(c.x, c.y, R * (.3 + k * 1.5), col, (1 - k) * .9, w); });
       // 魔法陣：円盤のふちに、二重の輪・目盛り・星形が、逆向きに回りながら浮かぶ
@@ -161,7 +165,7 @@
       const left = i % 2 === 0, a = -Math.PI / 2 + (left ? 1 : -1) * (.25 + Math.random() * .5), sp = 420 + Math.random() * 520;
       return { x: left ? -c0.w / 2 + 12 : c0.w / 2 - 12, y: c0.h / 2 - 10, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, grav: 900, life: .9 + Math.random() * .8, size: 4 + Math.random() * 7, col: pick(pal), drag: .985, delay: .1 + Math.random() * .5, star: i % 3 !== 0, spin: 4, trail: i % 3 ? 0 : .02 };
     });
-    add((now, dt) => {
+    add(el, (now, dt) => {
       const t = (now - t0) / 1000;
       if (t > 2.3) return false;
       const c = rect(el);
@@ -220,13 +224,13 @@
       return { x: 0, y: 0, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp * .7, life: .8 + Math.random() * 1.1, size: 3 + Math.random() * 6, col: pick(pal), drag: .95, delay: Math.random() * .25, star: i % 2 === 0, spin: 2.5 };
     });
     const fall = particles(5, i => ({ x: -R * 1.2 + Math.random() * R * 1.6, y: -R * 1.1, vx: 520 + Math.random() * 200, vy: 300 + Math.random() * 160, life: .55, size: 5, col: '#ffffff', trail: .09, delay: .3 + i * .22 }));
-    add((now, dt) => {
+    add(el, (now, dt) => {
       const t = (now - t0) / 1000;
       if (t > 2.2) return false;
       const c = rect(el), y = c.t + Math.min(c.h * .5, 120);
       flash(c.x, y, bump(t, 0, .05, .3) * .55, '#efe6ff');
       // むらさきの光のもや
-      dot(c.x, y, R * 2.2 * out3(t / .5), pal[1], bump(t, 0, .25, 1.9) * .35);
+      dot(c.x, y, R * 1.6 * out3(t / .5), pal[1], bump(t, 0, .25, 1.9) * .4);
       dot(c.x - R * .5, y + R * .1, R * 1.4, pal[2], bump(t, .1, .5, 1.8) * .18);
       [[0, pal[0], 3], [.14, pal[1], 2]].forEach(([d, col, w]) => { const k = out3((t - d) / .9); if (t >= d) ring(c.x, y, R * (.2 + k * 1.3), col, (1 - k) * .8, w); });
       // 12の点（星座の輪）が、ゆっくり回る
